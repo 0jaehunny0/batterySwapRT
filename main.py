@@ -94,9 +94,9 @@ def mainRunner(params, chargerNUM):
 
 
                 if sum(res1[2] > taskSet[:, _RSW]):
-                    print("FAIL")
+                    print("FAIL1")
                 if sum(res1[3] > taskSet[:, _RCG]):
-                    print("FAIL")
+                    print("FAIL2")
 
             else:
 
