@@ -4,142 +4,109 @@ import copy
 from numba import jit, njit
 # period, wcet, deadline, gumbel, power, release, seed, slack, fake wcet
 _T = 0
-_C = 1
+_C = 1  #  C^SW
 _D = 2
-_G = 3
-_P = 4
-_R = 5
-_E = 6
-_S = 7
-_F = 8
-_M = 9
-_ID = 10
-_PF = 11
-_PC = 12
-
-"""
-NWCF : Non-Work-Conserving Factor
-It is utilized to delay the execution of each jobs to reduce peak power
-"""
-############# Rate Monotonic ############# 
-
-## Effective Analysis for Engineering Real-Time Fixed Priority Schedulers by Alan Burns, Ken Tindell, and Andy Wellings
-## Non-Preemptive and Limited Preemptive Scheduling by Prof. Dr. Jian-Jia Chen, Georg von der Br¨uggen
-
-# @jit
-def oneAnalysisRM(oneSet): # one EDF analysis
-    numTask = oneSet.shape[0]
-
-    T = oneSet[:, _T]
-    # T = T.reshape(1, T.size)
-
-    C = oneSet[:, _C]
-    # C = C.reshape(1, C.size)
-
-    sortOrder = T.argsort()
-
-    # T = T[0, sortOrder]
-    # C = C[0, sortOrder]
-
-    T = T[sortOrder]   
-    C = C[sortOrder]   
+_ID = 3
+_CG = 4 # C^CG
+_RSW = 5#
+_VD = 6
+_RCG = 7
+_CG = 8
 
 
-    priority = T * 1000000- oneSet[:, _C] * 1000 + oneSet[:, _ID] # 똑같은 period인 task끼리도 priority가 fix되야 analysis가 유효함. C 큰 놈한테 priority 조금이라도 더 주는게 대강 더 유리함. C도 똑같으면 id로 구분
+def analysisCG(taskSet, params, batterySet, C_CG, chargerNUM):
 
-    if (C/T).sum() > 1: return True
+    UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD = params
 
-    for i in range(numTask):
-        hp = np.where(priority <= priority[i])[0]
-        lp = np.where(priority > priority[i])[0]
-        hp = hp[hp!=i]
+    # init R_x(i) = VD_x
+    taskSet = np.hstack((taskSet, np.array([taskSet[:, _VD]]).T))
 
-        Ci = C[i]
-        # Bi = max(np.append(C[lp], 0))
-        Bi = (np.append(C[lp], 0)).max()
-        Ti = T[i]
+    # add C_CG in matrix
+    taskSet = np.hstack((taskSet, np.array([C_CG]).T))
 
-        Rprev = Ci + Bi
-        while(True):
-            Rnext = Ci + Bi + (np.ceil(Rprev/T[hp]) * C[hp]).sum()
-            if Rnext > Ti:
-                return True
-            if Rnext == Rprev:
-                break
-            Rprev = Rnext
+    T = taskSet[:,_T]
+    C = taskSet[:,_CG]
+    NCG = chargerNUM
 
+    while True:
 
-    return False
+        prevR = taskSet[:, _RCG]
+        NBL = np.floor((np.fmax(0, prevR - T)) / T)
+        BL = ((np.fmax(0, prevR - T)) % T)
 
+        common = sum( (NBL * C) + BL + C )
 
-# @jit
-def analysisRM(taskSet, NUMP):
+        newRList = []
+        for idx in range(NUMT):
+            newR = np.ceil(common / NCG + (NCG - 1)/NCG * taskSet[idx, _C])
+            newRList.append(newR)
+        newRList = np.array(newRList)
 
-    return 0
+        if sum(prevR == newRList) == NUMT:
 
-    nonSched = False
+            if sum(taskSet[:, _RCG] >= taskSet[:,_VD]) >= 1:
+                return [-1]
+            
+            return taskSet # schedulable, conversed
 
-    for j in range(NUMP):
+        if sum(prevR <= newRList) == NUMT:
+            return [-1] # unsched
         
-        oneSet = taskSet[j, :, :]
-        nonSched = nonSched | oneAnalysisRM(oneSet)
+        taskSet[:, _RCG] = newRList
 
-    if nonSched == True:
-        return -1
-    else: 
-        return 0
+def virtualDeadline(taskSet, params, batterySet, C_CG, chargerNUM):
 
+    UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD = params
 
-@jit
-def makeOneNWCF_RM(oneSet, sort1, sort2, order1, order2): # _P largest, without round robin
-    newSet = oneSet.copy()
-    newSet[:, _M] = newSet[:, _D] - newSet[:, _C]
-    
-    one, two = newSet.shape
-    # (newSet[:, _P] + (newSet[:, _P].max() + newSet[:, _P].min())/2)
-    # newSet = np.concatenate((newSet, (newSet[:, _P] * (newSet[:, _C] - newSet[:, _F]) / np.maximum(newSet[:, _F], np.ones(one)) ).reshape(one,1)), axis=-1)
-    # newSet = np.concatenate((newSet, (newSet[:, _P] * (newSet[:, _C] - newSet[:, _F]) / newSet[:, _C] ).reshape(one,1)), axis=-1)
-    newSet = np.concatenate((newSet, (newSet[:, _F] / (newSet[:, _P] * (newSet[:, _C] - newSet[:, _F]))).reshape(one,1)), axis=-1)
-    newSet = np.concatenate((newSet, (newSet[:, _P] * newSet[:, _C] ).reshape(one,1)), axis=-1)
+    # new room
+    taskSet = np.hstack((taskSet, np.array([taskSet[:, _D]]).T))
 
-    newSet = newSet[newSet[:,sort1].argsort(kind = 'mergesort')[::order1]]
-    newSet = newSet[newSet[:,sort2].argsort(kind = 'mergesort')[::order2]]
+    for idx in range(NUMT):
 
-    while True:    
-        change = 0
-        for k in range(newSet.shape[0]):
-            i = newSet[k, :]
+        VD = batterySet[idx] * taskSet[idx, _T] - taskSet[idx, _RSW]
 
-            i[_C] += 1
-            i[_F] += 1
-            tempSet = newSet.copy()
+        while True:
 
-            if oneAnalysisRM(tempSet) == False: 
-                change = 1
-                newSet = tempSet
-                newSet[:, _M] = newSet[:, _D] - newSet[:, _C]
-                # newSet[:, _PF] = newSet[:, _P] * (newSet[:, _C] - newSet[:, _F]) / np.maximum(newSet[:, _F], np.ones(one))
-                # newSet[:, _PF] = newSet[:, _P] * (newSet[:, _C] - newSet[:, _F]) / newSet[:, _C]
-                newSet[:, _PF] = newSet[:, _F] / (newSet[:, _P] * (newSet[:, _C] - newSet[:, _F]))
-                newSet = newSet[newSet[:,sort1].argsort(kind = 'mergesort')[::order1]]
-                newSet = newSet[newSet[:,sort2].argsort(kind = 'mergesort')[::order2]]
+            if batterySet[idx] >= np.ceil( (taskSet[idx, _RSW] + VD) / taskSet[idx, _T]):
                 break
-                   
-            else:
-                i[_C] -= 1
-                i[_F] -= 1
-        if change == 0:
-            break
-    
-    return newSet[:, :11]
 
-@jit
-def makeNWCF_RM(taskSet, NUMP, sort1, sort2, order1, order2):
-    newTaskSet = copy.deepcopy(taskSet)
-
-    for j in range(NUMP):
-        oneSet = taskSet[j, :, :]
-        numTask = oneSet.shape[0]
-        newTaskSet[j, :, :] = makeOneNWCF_RM(oneSet, sort1, sort2, order1, order2)
+            VD -= 1
+        
+        taskSet[idx, _VD] = VD
     
-    return newTaskSet
+    return taskSet
+
+def analysisSW(taskSet, params, batterySet, C_CG, chargerNUM):
+
+    UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD = params
+
+    # init R_x(i) = D_x
+    taskSet = np.hstack((taskSet, np.array([taskSet[:, _D]]).T))
+
+    T = taskSet[:,_T]
+    C = taskSet[:,_C]
+    NSW = NUMP
+
+    while True:
+
+        prevR = taskSet[:, _RSW]
+        NBL = np.floor((np.fmax(0, prevR - T)) / T)
+        BL = ((np.fmax(0, prevR - T)) % T)
+
+        common = sum( (NBL * C) + BL + C )
+
+        newRList = []
+        for idx in range(NUMT):
+            newR = np.ceil(common / NSW + (NSW - 1)/NSW * taskSet[idx, _C])
+            newRList.append(newR)
+        newRList = np.array(newRList)
+
+        if sum(prevR == newRList) == NUMT:
+            if sum(taskSet[:, _RSW] >= taskSet[:,_D]) >= 1:
+                return [-1]
+            return taskSet # schedulable, conversed
+
+        if sum(prevR <= newRList) == NUMT:
+            return [-1] # unsched
+        
+        taskSet[:, _RSW] = newRList

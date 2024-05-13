@@ -15,10 +15,12 @@ NUMP = 4    # m     # [1- ] number of processors / number of swap stations
 NUMS = 1000 # nSets # [1- ] number of sets / number of scenarios
 MINT = 1    # minT  # [1- ] minimum periods 
 MAXT = 100  # maxT  # [1- ] maximum periods
+MIND = 1  # minD  # [1- ] minimum deadline (multiple of WCET)
+MAXD = 5    # maxD  # [0- ] maximum deadline (multiple of periods)
 
 # Optional parameters
 OPTS = 1    #      # [0- ] random seed value
-OPTD = 0    #      # [0,1] 0: implicit-deadlines, 1: constrained-deadlines 
+OPTD = 1    #      # [0,1] 0: implicit-deadlines, 1: constrained-deadlines 
 
 # Battery swap station-specific parameters
 NUMC = 5    # cg    # [1- ] number of chargers
@@ -84,11 +86,13 @@ def TC(n, util, oneUtil, MINT, MAXT): # T, C generator
     return T, C
 
 def TCDGP(seed_id, params): # T, C, D, G, P generator
-    global UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD
-    UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD = params
+    global UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD
+    UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD = params
     n, util = NUMT, UTIL*NUMP
     cond = 2 * 1 / MAXT * n # guarantee C >= 1 / [4]
-    assert cond < util, "hard to guarantee C >= 1: too low UTIL, MAXT and too high NUMT, MINT"
+    assert cond <= util, "hard to guarantee C >= 1: too low UTIL, MAXT and too high NUMT, MINT"
+
+    assert util / n <= 0.95, "one task's util <= 1 abd 0.95 is sufficiently high"
 
     np.random.seed(seed_id) # set random seed
     
@@ -99,7 +103,7 @@ def TCDGP(seed_id, params): # T, C, D, G, P generator
     if OPTD == 0: # implicit-deadlines
         D = T
     else: # constrained-deadlines
-        D = np.int32(np.random.randint(low=C, high=T+1, size=n)) # uniform deadlines / [2]
+        D = np.int32(np.random.randint(low=C*MIND, high=T*MAXD+1, size=n)) # uniform deadlines / [2]
 
     ID = np.int32(np.arange(n))
 
@@ -130,9 +134,9 @@ def rawPickleLoader(name): # load data
     return data
 
 def taskSetsGenerator(params):
-    assert len(params) == 8, "parameters: UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD"
-    global UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD
-    UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD = params
+    assert len(params) == 10, "parameters: UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD"
+    global UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD
+    UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD = params
 
     if not os.path.exists(taskDir):
         os.makedirs(taskDir)
@@ -152,15 +156,15 @@ def taskSetsGenerator(params):
 
 if __name__ == "__main__":
 
-    utilLi = [0.2, 0.3, 0.4]
-    numtLi = [3]
-    numpLi = [3]
+    utilLi = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
+    numtLi = [3, 4, 5]
+    numpLi = [1, 2, 3, 4]
 
     for util in utilLi:
         for numt in numtLi:
             for nump in numpLi:
                 UTIL, NUMT, NUMP = util, numt, nump
-                params = [UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD]
+                params = [UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD]
                 result = taskSetsGenerator(params)
 
     print(1)
