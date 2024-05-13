@@ -98,8 +98,8 @@ def FIFOrunner(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM):
         # currently running
         for charger in range(NUMC):
             idx2, releaseTime2, deadline2, RSW2, remainC2, initRelease2, RCG2, start, end = runningCharger[charger, :]
-            if idx2 != -1 and time == RSW:
-                chargerCheck[charger, time : end] = idx
+            if idx2 != -1 and time == RSW2:
+                chargerCheck[charger, time : end] = idx2
         
         # ready in lowQ
         qLen = len(lowQ)
@@ -123,6 +123,10 @@ def FIFOrunner(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM):
             if chargerCheck[charger, time] < 0:
                 availHighCharger += 1
 
+        # highQ sorting
+        if len(highQ) >= 2:
+            highQ = highQ[highQ[:, 3].argsort()] # sort with t + RSW
+
         # highQ
         qLen = len(highQ)
         for i in range(qLen):
@@ -135,7 +139,7 @@ def FIFOrunner(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM):
                         idx, releaseTime, deadline, RSW, remainC, initRelease, RCG = popped
 
                         if chargerCheck[charger, time] != -1:
-                            # preemption, low go back to charger readyQueue
+                            # preemption, low go back to lowQ
                             idx2, releaseTime2, deadline2, RSW2, remainC2, initRelease2, RCG2, start, end = runningCharger[charger, :]
                             chargerCheck[charger, time : end] = -1
                             remainC2 = remainC2 - (time - start)
@@ -195,12 +199,12 @@ def FIFOrunner(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM):
                 # insert it to highQ
                 if time >= RSW:
                     # idx, releaseTime, deadline, RSW, remainC, initRelease, RCG
-                    b = np.vstack((highQ, np.array([idx, time, time + taskSet[idx, _VD] - 1, RSW, taskSet[idx, _CG], releaseTime, taskSet[idx, _RCG] + time], dtype=np.int32).reshape(1,7)))    
+                    b = np.vstack((highQ, np.array([idx, time, releaseTime + RSW + taskSet[idx, _VD] - 1, RSW, taskSet[idx, _CG], releaseTime, taskSet[idx, _RCG] + time], dtype=np.int32).reshape(1,7)))    
                     highQ = b
 
                 # insert it to lowQ
                 else:
-                    b = np.vstack((lowQ, np.array([idx, time, time + taskSet[idx, _VD] - 1, RSW, taskSet[idx, _CG], releaseTime, taskSet[idx, _RCG] + time], dtype=np.int32).reshape(1,7)))    
+                    b = np.vstack((lowQ, np.array([idx, time, releaseTime + RSW + taskSet[idx, _VD] - 1, RSW, taskSet[idx, _CG], releaseTime, taskSet[idx, _RCG] + time], dtype=np.int32).reshape(1,7)))    
                     lowQ = b
             
                 runningStation[station] = np.array([-1,-1,-1,-1,-1])
@@ -211,7 +215,7 @@ def FIFOrunner(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM):
                 idx = runningCharger[charger][0]
                 batterySet2[idx] += 1
 
-                releaseTime = runningCharger[charger][1]
+                releaseTime = runningCharger[charger][3] # t + RSW
                 R_CG = time - releaseTime
 
                 MAX_R_CG[idx] = max(MAX_R_CG[idx], R_CG)

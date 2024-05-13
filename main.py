@@ -94,9 +94,13 @@ def mainRunner(params, chargerNUM):
 
 
                 if sum(res1[2] > taskSet[:, _RSW]):
-                    print("FAIL1")
+                    diff = (res1[2] - taskSet[:, _RSW])
+                    print(diff[diff > 0])
+                    print("FAIL1", params, chargerNUM)
                 if sum(res1[3] > taskSet[:, _RCG]):
-                    print("FAIL2")
+                    diff = (res1[3] - taskSet[:, _RCG])
+                    print(diff[diff > 0])
+                    print("FAIL2", params, chargerNUM)
 
             else:
 
@@ -110,10 +114,14 @@ def mainRunner(params, chargerNUM):
 
 if __name__ == "__main__":
 
+    # FAIL2 [0.1, 5, 3, 1000, 1, 100, 1, 1, 1, 5], 3
 
-    # UTIL, NUMT, NUMP = 0.1, 3, 1
+    # UTIL, NUMT, NUMP = 0.1, 3, 3
+    # UTIL, NUMT, NUMP = 0.1, 5, 3
     # params = [UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD]
-    # result = mainRunner(params, 1)
+    # numcLi = [1, 2, 3, 4]
+    # for numc in numcLi:
+    #     result = mainRunner(params, numc)
 
 
     utilLi = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
