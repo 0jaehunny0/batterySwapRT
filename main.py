@@ -39,7 +39,9 @@ OPTD = 1    #      # [0,1] 0: implicit-deadlines, 1: constrained-deadlines
 
 # Battery swap station-specific parameters
 NUMC = 5    # cg    # [1- ] number of chargers
-NUMB = 10   # bat   # [1- ] number of batteries --> need to be categorized later
+
+PERIODIC = 0
+SPORADIC = 1
 
 # camelCase
 n, util, nSets = None, None, None
@@ -64,7 +66,7 @@ def mainRunner(params, chargerNUM):
     batterySet = np.random.randint(10, 100, NUMT)
     C_CG = np.random.randint(1, 5, NUMT)
     
-    RM, RM2 = 0, 0
+    analysisFail1, analysisFail2 = 0, 0
     for i in range(0, NUMS):
     # for i in range(794, NUMS):
 
@@ -86,12 +88,18 @@ def mainRunner(params, chargerNUM):
 
                 taskSet = analysisResultCG
 
-                res1 = FIFOrunner(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM)                
+                res1 = FIFOrunner(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, PERIODIC)                
+                res2 = FIFOrunner(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, SPORADIC)                
+                res3 = FIFOrunner_dynamic(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, PERIODIC)                
+                res4 = FIFOrunner_dynamic(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, SPORADIC)                
+                
+                # resUtil1 = sum(sum(res1[0] != -1))/RUNTIME/NUMP
+                # resUtil2 = sum(sum(res2[0] != -1))/RUNTIME/NUMP
+                # resUtil3 = sum(sum(res3[0] != -1))/RUNTIME/NUMP
+                # resUtil4 = sum(sum(res4[0] != -1))/RUNTIME/NUMP
+                # rawUtil = sum(taskSet[:, _C]/taskSet[:, _T])/NUMP
 
-                resUtil = sum(sum(res1[0] != -1))/RUNTIME
-
-                sum(taskSet[:, _C]/taskSet[:, _T])/NUMP
-
+                # print(resUtil1, resUtil2, resUtil3, resUtil4, rawUtil)
 
                 if sum(res1[2] > taskSet[:, _RSW]):
                     diff = (res1[2] - taskSet[:, _RSW])
@@ -101,14 +109,37 @@ def mainRunner(params, chargerNUM):
                     diff = (res1[3] - taskSet[:, _RCG])
                     print(diff[diff > 0])
                     print("FAIL2", params, chargerNUM)
-
+                if sum(res2[2] > taskSet[:, _RSW]):
+                    diff = (res2[2] - taskSet[:, _RSW])
+                    print(diff[diff > 0])
+                    print("FAIL1", params, chargerNUM)
+                if sum(res2[3] > taskSet[:, _RCG]):
+                    diff = (res2[3] - taskSet[:, _RCG])
+                    print(diff[diff > 0])
+                    print("FAIL2", params, chargerNUM)
+                if sum(res3[2] > taskSet[:, _RSW]):
+                    diff = (res3[2] - taskSet[:, _RSW])
+                    print(diff[diff > 0])
+                    print("FAIL1", params, chargerNUM)
+                if sum(res3[3] > taskSet[:, _RCG]):
+                    diff = (res3[3] - taskSet[:, _RCG])
+                    print(diff[diff > 0])
+                    print("FAIL2", params, chargerNUM)
+                if sum(res4[2] > taskSet[:, _RSW]):
+                    diff = (res4[2] - taskSet[:, _RSW])
+                    print(diff[diff > 0])
+                    print("FAIL1", params, chargerNUM)
+                if sum(res4[3] > taskSet[:, _RCG]):
+                    diff = (res4[3] - taskSet[:, _RCG])
+                    print(diff[diff > 0])
+                    print("FAIL2", params, chargerNUM)
             else:
 
-                RM2 += -1
+                analysisFail2 += -1
 
         else:
 
-            RM += -1
+            analysisFail1 += -1
 
     print(1)
 
@@ -135,7 +166,5 @@ if __name__ == "__main__":
                     UTIL, NUMT, NUMP = util, numt, nump
                     params = [UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD]
                     result = mainRunner(params, numc)
-
-
 
     print("a")
