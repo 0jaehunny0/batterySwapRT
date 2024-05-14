@@ -88,18 +88,27 @@ def mainRunner(params, chargerNUM):
 
                 taskSet = analysisResultCG
 
-                res1 = FIFOrunner(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, PERIODIC)                
-                res2 = FIFOrunner(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, SPORADIC)                
-                res3 = FIFOrunner_dynamic(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, PERIODIC)                
-                res4 = FIFOrunner_dynamic(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, SPORADIC)                
+                res1 = FIFOrunnerAHP1(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, PERIODIC)                
+                res2 = FIFOrunnerAHP1(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, SPORADIC)                              
+                res3 = FIFOrunnerAHP2(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, PERIODIC)                
+                res4 = FIFOrunnerAHP2(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, SPORADIC)                
                 
-                # resUtil1 = sum(sum(res1[0] != -1))/RUNTIME/NUMP
-                # resUtil2 = sum(sum(res2[0] != -1))/RUNTIME/NUMP
-                # resUtil3 = sum(sum(res3[0] != -1))/RUNTIME/NUMP
-                # resUtil4 = sum(sum(res4[0] != -1))/RUNTIME/NUMP
-                # rawUtil = sum(taskSet[:, _C]/taskSet[:, _T])/NUMP
+                # res1 = FIFOrunner(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, PERIODIC)                
+                # res2 = FIFOrunner(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, SPORADIC)                
+                # res3 = FIFOrunner_dynamic(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, PERIODIC)                
+                # res4 = FIFOrunner_dynamic(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, SPORADIC)                
+                
+                # # resUtil1 = sum(sum(res1[0] != -1))/RUNTIME/NUMP
+                # # resUtil2 = sum(sum(res2[0] != -1))/RUNTIME/NUMP
+                # # resUtil3 = sum(sum(res3[0] != -1))/RUNTIME/NUMP
+                # # resUtil4 = sum(sum(res4[0] != -1))/RUNTIME/NUMP
+                # # rawUtil = sum(taskSet[:, _C]/taskSet[:, _T])/NUMP
 
-                # print(resUtil1, resUtil2, resUtil3, resUtil4, rawUtil)
+                # # print(resUtil1, resUtil2, resUtil3, resUtil4, rawUtil)
+
+                # # charger utilization
+                # sum(sum(res1[1] != -1))/RUNTIME/NUMC
+                # sum(taskSet[:, _CG]  / taskSet[:, _T])/NUMC
 
                 if sum(res1[2] > taskSet[:, _RSW]):
                     diff = (res1[2] - taskSet[:, _RSW])
@@ -133,6 +142,11 @@ def mainRunner(params, chargerNUM):
                     diff = (res4[3] - taskSet[:, _RCG])
                     print(diff[diff > 0])
                     print("FAIL2", params, chargerNUM)
+                
+                # print(res1[-1], res2[-1], res3[-1], res4[-1])
+
+                if sum([res1[-1], res2[-1], res3[-1], res4[-1]]) >= 1:
+                    print("check")
             else:
 
                 analysisFail2 += -1
@@ -159,6 +173,11 @@ if __name__ == "__main__":
     numtLi = [3, 4, 5]
     numpLi = [1, 2, 3, 4]
     numcLi = [1, 2, 3, 4]
+
+    utilLi = [0.6, 0.7]
+    numtLi = [4, 5]
+    numpLi = [3, 4]
+    numcLi = [3, 4]
     for util in utilLi:
         for numt in numtLi:
             for nump in numpLi:
