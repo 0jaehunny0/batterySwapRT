@@ -63,7 +63,7 @@ def FIFOrunnerAHP1(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, pe
                         a = np.vstack((stationQ, np.array([idx, time, taskSet[idx, _D] + time - 1, taskSet[idx, _RSW] + time, taskSet[idx, _C]], dtype=np.int32).reshape(1,5)))
                     stationQ = a
                     prevRelease[idx] = nextRelease[idx]
-                    sporadic = np.random.randint(-TT/2, TT/2 + 1) # jitter
+                    sporadic = np.random.randint(-TT/2, TT/2 + 1) * period # jitter 
                     nextRelease[idx] += (TT + sporadic)
 
         # Step 2: run station (battery num --)
@@ -272,11 +272,12 @@ def FIFOrunnerAHP2(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, pe
                     TT = taskSet[idx, _T]
                     if time - prevRelease[idx] < TT:
                         a = np.vstack((stationQ, np.array([idx, prevRelease[idx] + TT, taskSet[idx, _D] + time - 1, taskSet[idx, _RSW] + time, taskSet[idx, _C]], dtype=np.int32).reshape(1,5)))
+                        nextRelease[idx] = prevRelease[idx] + TT
                     else:
                         a = np.vstack((stationQ, np.array([idx, time, taskSet[idx, _D] + time - 1, taskSet[idx, _RSW] + time, taskSet[idx, _C]], dtype=np.int32).reshape(1,5)))
                     stationQ = a
                     prevRelease[idx] = nextRelease[idx]
-                    sporadic = np.random.randint(-TT/2, TT/2 + 1) # jitter
+                    sporadic = np.random.randint(-TT/2, TT/2 + 1) * period # jitter
                     nextRelease[idx] += (TT + sporadic)
 
         # Step 2: run station (battery num --)
