@@ -271,7 +271,7 @@ def FIFOrunnerAHP2(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, pe
                 if nextRelease[idx] == time and nextRelease[idx] + taskSet[idx, _D] - 1 < RUNTIME:
                     TT = taskSet[idx, _T]
                     if time - prevRelease[idx] < TT:
-                        a = np.vstack((stationQ, np.array([idx, prevRelease[idx] + TT, taskSet[idx, _D] + time - 1, taskSet[idx, _RSW] + time, taskSet[idx, _C]], dtype=np.int32).reshape(1,5)))
+                        a = np.vstack((stationQ, np.array([idx, prevRelease[idx] + TT, taskSet[idx, _D] + prevRelease[idx] + TT - 1, taskSet[idx, _RSW] + prevRelease[idx] + TT, taskSet[idx, _C]], dtype=np.int32).reshape(1,5)))
                         nextRelease[idx] = prevRelease[idx] + TT
                     else:
                         a = np.vstack((stationQ, np.array([idx, time, taskSet[idx, _D] + time - 1, taskSet[idx, _RSW] + time, taskSet[idx, _C]], dtype=np.int32).reshape(1,5)))
