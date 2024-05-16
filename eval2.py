@@ -90,34 +90,32 @@ def mainRunner(params, chargerNUM, change, AUX):
 
     myRes = loadByName(name) # taskSetLoader([UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD, OPTG, OPTP])
 
-    # batterySet = np.random.randint(10, 100, NUMT)
     batterySet = np.ones(NUMT) * AUX
-    # C_CG = np.random.randint(1, 5, NUMT)
     
     res = 0
     analysisSWFail = 0
     analysisCGFail = 0
     vdli = []
 
-    analysisFail1, analysisFail2 = 0, 0
-    # for i in range(0, NUMS):
+    PreemptionRatio = np.zeros(6)
+    RealRCGmean = np.zeros(6)
+    realRCGdivRCGmean = np.zeros(6)
+    RCGdivRCGmean = np.zeros(6)
+    realRCGdivRCGmean = np.zeros(6)
+    RCGdivRCGmean = np.zeros(6)
+    chargerUtil = np.zeros(6)
+    stationUtil = np.zeros(6)
+    
     for i in range(0, NUMS):
         np.random.seed(i)
-    # for i in range(794, NUMS):
 
         taskSet = myRes[i, :, :]
 
         if change:
             targetUtil = CUTIL * chargerNUM
-            # # change C with C_CG
-            # XXX = taskSet[:, _C].copy()
-            # taskSet[:, _C] = C_CG
-            # C_CG = XXX
         else:
             targetUtil = 0.3 * chargerNUM
         _, C_CG = TtoC(taskSet, targetUtil)
-
-
 
         taskSet = np.hstack((taskSet, np.array([C_CG]).T))
 
@@ -132,6 +130,31 @@ def mainRunner(params, chargerNUM, change, AUX):
             analysisResultCG = analysisCG(taskSet, params, batterySet, C_CG, chargerNUM)
 
             if np.sum(analysisResultCG) != -1:
+
+                taskSet = analysisResultCG
+
+                res1 = FIFOrunnerAHP1(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, PERIODIC)                
+                stationCheck1, chargerCheck1, Preemption1, totalRelease1, totalhighCnt1, acceptCnt1, R_SW_list1, R_CG_list1, realR_SW_list1, realR_CG_list1, RSW_list1, RCG_list1 = res1
+                res2 = FIFOrunnerAHP1(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, SPORADIC)
+                stationCheck2, chargerCheck2, Preemption2, totalRelease2, totalhighCnt2, acceptCnt2, R_SW_list2, R_CG_list2, realR_SW_list2, realR_CG_list2, RSW_list2, RCG_list2 = res2                              
+                res3 = FIFOrunnerAHP2(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, PERIODIC)               
+                stationCheck3, chargerCheck3, Preemption3, totalRelease3, totalhighCnt3, acceptCnt3, R_SW_list3, R_CG_list3, realR_SW_list3, realR_CG_list3, RSW_list3, RCG_list3 = res3 
+                res4 = FIFOrunnerAHP2(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, SPORADIC)                
+                stationCheck4, chargerCheck4, Preemption4, totalRelease4, totalhighCnt4, acceptCnt4, R_SW_list4, R_CG_list4, realR_SW_list4, realR_CG_list4, RSW_list4, RCG_list4 = res4
+                res5 = FIFOrunnerAHP3(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, PERIODIC)                
+                stationCheck5, chargerCheck5, Preemption5, totalRelease5, totalhighCnt5, acceptCnt5, R_SW_list5, R_CG_list5, realR_SW_list5, realR_CG_list5, RSW_list5, RCG_list5 = res5
+                res6 = FIFOrunnerAHP3(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, SPORADIC)                
+                stationCheck6, chargerCheck6, Preemption6, totalRelease6, totalhighCnt6, acceptCnt6, R_SW_list6, R_CG_list6, realR_SW_list6, realR_CG_list6, RSW_list6, RCG_list6 = res6
+
+
+                chargerUtil += np.array([
+                    np.sum(chargerCheck1 != -1)/RUNTIME/chargerNUM,
+                    np.sum(chargerCheck2 != -1)/RUNTIME/chargerNUM,
+                    np.sum(chargerCheck3 != -1)/RUNTIME/chargerNUM,
+                    np.sum(chargerCheck4 != -1)/RUNTIME/chargerNUM,
+                    np.sum(chargerCheck5 != -1)/RUNTIME/chargerNUM,
+                    np.sum(chargerCheck6 != -1)/RUNTIME/chargerNUM
+                ])
 
                 res += 1
                 vdli.append(taskSet[:, _VD].mean())
