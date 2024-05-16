@@ -17,7 +17,7 @@ _CG = 4
 
 
 @njit(fastmath=True)
-def FIFOrunnerAHP1(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, period):
+def FIFOrunnerAHP1(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, period, dynamic):
     taskSet = paramTaskSet.copy()
 
     NUMC = chargerNUM
@@ -210,15 +210,18 @@ def FIFOrunnerAHP1(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, pe
                 realR_SW_list = np.append(realR_SW_list, realR_SW)
                 RSW_list = np.append(RSW_list, guaranteedRSW)
 
+                minusCharging = np.random.randint(0, taskSet[idx, _CG])
+                realCharging = taskSet[idx, _CG] - minusCharging * dynamic
+
                 # insert it to highQ
                 if time >= RSW:
                     # idx, releaseTime, deadline, RSW, remainC, initRelease, RCG
-                    b = np.vstack((highQ, np.array([idx, time, releaseTime + RSW + taskSet[idx, _VD] - 1, RSW, taskSet[idx, _CG], releaseTime, taskSet[idx, _RCG] + RSW, realRelease], dtype=np.int32).reshape(1,8)))    
+                    b = np.vstack((highQ, np.array([idx, time, releaseTime + RSW + taskSet[idx, _VD] - 1, RSW, realCharging, releaseTime, taskSet[idx, _RCG] + RSW, realRelease], dtype=np.int32).reshape(1,8)))    
                     highQ = b
 
                 # insert it to lowQ
                 else:
-                    b = np.vstack((lowQ, np.array([idx, time, releaseTime + RSW + taskSet[idx, _VD] - 1, RSW, taskSet[idx, _CG], releaseTime, taskSet[idx, _RCG] + RSW, realRelease], dtype=np.int32).reshape(1,8)))    
+                    b = np.vstack((lowQ, np.array([idx, time, releaseTime + RSW + taskSet[idx, _VD] - 1, RSW, realCharging, releaseTime, taskSet[idx, _RCG] + RSW, realRelease], dtype=np.int32).reshape(1,8)))    
                     lowQ = b
             
                 runningStation[station] = np.array([-1,-1,-1,-1,-1,-1])
@@ -242,7 +245,7 @@ def FIFOrunnerAHP1(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, pe
     return stationCheck, chargerCheck, Preemption, totalRelease, totalhighCnt, acceptCnt, R_SW_list, R_CG_list, realR_SW_list, realR_CG_list, RSW_list, RCG_list
 
 @njit(fastmath=True)
-def FIFOrunnerAHP2(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, period):
+def FIFOrunnerAHP2(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, period, dynamic):
     taskSet = paramTaskSet.copy()
 
     NUMC = chargerNUM
@@ -440,15 +443,18 @@ def FIFOrunnerAHP2(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, pe
                 realR_SW_list = np.append(realR_SW_list, realR_SW)
                 RSW_list = np.append(RSW_list, guaranteedRSW)
 
+                minusCharging = np.random.randint(0, taskSet[idx, _CG])
+                realCharging = taskSet[idx, _CG] - minusCharging * dynamic
+
                 # insert it to highQ
                 if time >= RSW:
                     # idx, releaseTime, deadline, RSW, remainC, initRelease, RCG
-                    b = np.vstack((highQ, np.array([idx, time, releaseTime + RSW + taskSet[idx, _VD] - 1, RSW, taskSet[idx, _CG], releaseTime, taskSet[idx, _RCG] + RSW, realRelease], dtype=np.int32).reshape(1,8)))    
+                    b = np.vstack((highQ, np.array([idx, time, releaseTime + RSW + taskSet[idx, _VD] - 1, RSW, realCharging, releaseTime, taskSet[idx, _RCG] + RSW, realRelease], dtype=np.int32).reshape(1,8)))    
                     highQ = b
 
                 # insert it to lowQ
                 else:
-                    b = np.vstack((lowQ, np.array([idx, time, releaseTime + RSW + taskSet[idx, _VD] - 1, RSW, taskSet[idx, _CG], releaseTime, taskSet[idx, _RCG] + RSW, realRelease], dtype=np.int32).reshape(1,8)))    
+                    b = np.vstack((lowQ, np.array([idx, time, releaseTime + RSW + taskSet[idx, _VD] - 1, RSW, realCharging, releaseTime, taskSet[idx, _RCG] + RSW, realRelease], dtype=np.int32).reshape(1,8)))    
                     lowQ = b
             
                 runningStation[station] = np.array([-1,-1,-1,-1,-1,-1])
@@ -474,7 +480,7 @@ def FIFOrunnerAHP2(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, pe
 
 
 @njit(fastmath=True)
-def FIFOrunnerAHP3(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, period):
+def FIFOrunnerAHP3(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, period, dynamic):
     taskSet = paramTaskSet.copy()
 
     NUMC = chargerNUM
@@ -682,15 +688,18 @@ def FIFOrunnerAHP3(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, pe
                 realR_SW_list = np.append(realR_SW_list, realR_SW)
                 RSW_list = np.append(RSW_list, guaranteedRSW)
 
+                minusCharging = np.random.randint(0, taskSet[idx, _CG])
+                realCharging = taskSet[idx, _CG] - minusCharging * dynamic
+
                 # insert it to highQ
                 if time >= RSW:
                     # idx, releaseTime, deadline, RSW, remainC, initRelease, RCG
-                    b = np.vstack((highQ, np.array([idx, time, releaseTime + RSW + taskSet[idx, _VD] - 1, RSW, taskSet[idx, _CG], releaseTime, taskSet[idx, _RCG] + RSW, realRelease], dtype=np.int32).reshape(1,8)))    
+                    b = np.vstack((highQ, np.array([idx, time, releaseTime + RSW + taskSet[idx, _VD] - 1, RSW, realCharging, releaseTime, taskSet[idx, _RCG] + RSW, realRelease], dtype=np.int32).reshape(1,8)))    
                     highQ = b
 
                 # insert it to lowQ
                 else:
-                    b = np.vstack((lowQ, np.array([idx, time, releaseTime + RSW + taskSet[idx, _VD] - 1, RSW, taskSet[idx, _CG], releaseTime, taskSet[idx, _RCG] + RSW, realRelease], dtype=np.int32).reshape(1,8)))    
+                    b = np.vstack((lowQ, np.array([idx, time, releaseTime + RSW + taskSet[idx, _VD] - 1, RSW, realCharging, releaseTime, taskSet[idx, _RCG] + RSW, realRelease], dtype=np.int32).reshape(1,8)))    
                     lowQ = b
             
                 runningStation[station] = np.array([-1,-1,-1,-1,-1,-1])
