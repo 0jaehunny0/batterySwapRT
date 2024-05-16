@@ -38,7 +38,7 @@ def analysisCG(taskSet, params, batterySet, C_CG, chargerNUM):
 
         newRList = []
         for idx in range(NUMT):
-            newR = np.ceil(common / NCG + (NCG - 1)/NCG * taskSet[idx, _C])
+            newR = np.ceil(common / NCG + (NCG - 1)/NCG * taskSet[idx, _CG])
             newRList.append(newR)
         newRList = np.array(newRList)
 
@@ -50,7 +50,13 @@ def analysisCG(taskSet, params, batterySet, C_CG, chargerNUM):
             return taskSet # schedulable, conversed
 
         if sum(prevR <= newRList) == NUMT:
-            return [-1] # unsched
+
+            if sum(taskSet[:, _RCG] >= taskSet[:,_VD]) >= 1:
+                return [-1]
+            
+            return taskSet # schedulable, conversed
+
+            # return [-1] # unsched
         
         taskSet[:, _RCG] = newRList
 
@@ -107,6 +113,11 @@ def analysisSW(taskSet, params, batterySet, C_CG, chargerNUM):
             return taskSet # schedulable, conversed
 
         if sum(prevR <= newRList) == NUMT:
-            return [-1] # unsched
+
+            if sum(taskSet[:, _RSW] >= taskSet[:,_D]) >= 1:
+                return [-1]
+            return taskSet # schedulable, conversed
+
+            # return [-1] # unsched
         
         taskSet[:, _RSW] = newRList
