@@ -32,13 +32,18 @@ def analysisCG(taskSet, params, batterySet, C_CG, chargerNUM):
 
         prevR = taskSet[:, _RCG]
         NBL = np.floor((np.fmax(0, prevR - T)) / T)
-        BL = ((np.fmax(0, prevR - T)) % T)
-
-        common = sum( (NBL * C) + BL + C )
+        BL = np.fmin(C, ((np.fmax(0, prevR - T)) % T))
 
         newRList = []
         for idx in range(NUMT):
-            newR = np.ceil(common / NCG + (NCG - 1)/NCG * taskSet[idx, _CG])
+
+            first = C[idx]
+            second = np.ceil ((NBL[idx] * C[idx] + BL[idx]) / NCG)
+            
+            fast = sum(C) + sum(NBL*C) + sum(BL) - C[idx] - NBL[idx] * C[idx] - BL[idx]
+            thrid = np.ceil(fast / NCG)
+
+            newR = np.ceil( first + second + thrid )
             newRList.append(newR)
         newRList = np.array(newRList)
 
@@ -97,13 +102,17 @@ def analysisSW(taskSet, params, batterySet, C_CG, chargerNUM):
 
         prevR = taskSet[:, _RSW]
         NBL = np.floor((np.fmax(0, prevR - T)) / T)
-        BL = ((np.fmax(0, prevR - T)) % T)
-
-        common = sum( (NBL * C) + BL + C )
+        BL = np.fmin(C, ((np.fmax(0, prevR - T)) % T))
 
         newRList = []
         for idx in range(NUMT):
-            newR = np.ceil(common / NSW + (NSW - 1)/NSW * taskSet[idx, _C])
+            first = C[idx]
+            second = np.ceil ((NBL[idx] * C[idx] + BL[idx]) / NSW)
+            
+            fast = sum(C) + sum(NBL*C) + sum(BL) - C[idx] - NBL[idx] * C[idx] - BL[idx]
+            thrid = np.ceil(fast / NSW)
+
+            newR = np.ceil( first + second + thrid )
             newRList.append(newR)
         newRList = np.array(newRList)
 
