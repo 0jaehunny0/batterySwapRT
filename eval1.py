@@ -280,12 +280,12 @@ def numBat():
     # plt.show()
 
 
-numBat()
-chargerUtil()
+# numBat()
+# chargerUtil()
 swapUtil()
-numT()
-numP()
-numC()
+# numT()
+# numP()
+# numC()
 
 
 plt.show()

@@ -139,6 +139,7 @@ def taskSetsGenerator(params):
 if __name__ == "__main__":
 
     # stationUtilLi = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
+    # stationUtilLi = [0.9]
     # chargerUtilLi = [0.5]
     # numtLi = [4]
     # numpLi = [2]
@@ -151,11 +152,11 @@ if __name__ == "__main__":
     #                     params = [sUtil, cUtil, numt, nump, numc, NUMS]
     #                     result = taskSetsGenerator(params)
 
-    stationUtilLi = [0.5]
-    chargerUtilLi = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-    numtLi = [4]
-    numpLi = [2]
-    numcLi = [30]
+    # stationUtilLi = [0.5]
+    # chargerUtilLi = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    # numtLi = [4]
+    # numpLi = [2]
+    # numcLi = [30]
     # for sUtil in stationUtilLi:
     #     for cUtil in chargerUtilLi:
     #         for numt in numtLi:
@@ -178,18 +179,18 @@ if __name__ == "__main__":
     #                     params = [sUtil, cUtil, numt, nump, numc, NUMS]
     #                     result = taskSetsGenerator(params)
 
-    stationUtilLi = [0.5] #19950717
-    chargerUtilLi = [0.5]
-    numtLi = [4]
-    numpLi = [1,2,3,4,5]
-    numcLi = [30]
-    for sUtil in stationUtilLi:
-        for cUtil in chargerUtilLi:
-            for numt in numtLi:
-                for nump in numpLi:
-                    for numc in numcLi:
-                        params = [sUtil, cUtil, numt, nump, numc, NUMS]
-                        result = taskSetsGenerator(params)
+    # stationUtilLi = [0.5] #19950717
+    # chargerUtilLi = [0.5]
+    # numtLi = [4]
+    # numpLi = [1,2,3,4,5]
+    # numcLi = [30]
+    # for sUtil in stationUtilLi:
+    #     for cUtil in chargerUtilLi:
+    #         for numt in numtLi:
+    #             for nump in numpLi:
+    #                 for numc in numcLi:
+    #                     params = [sUtil, cUtil, numt, nump, numc, NUMS]
+    #                     result = taskSetsGenerator(params)
 
     # stationUtilLi = [0.5]
     # chargerUtilLi = [0.5]

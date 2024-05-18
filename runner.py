@@ -30,7 +30,7 @@ def FIFOrunnerAHP1(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, pe
 
     numt = taskSet.shape[0]
     nextRelease = np.zeros((numt), dtype = np.int32)
-    prevRelease = np.ones((numt), dtype = np.int32) * -9999
+    prevRelease = np.ones((numt), dtype = np.int32) * -9999999
 
     stationQ = np.empty((0, 6), dtype = np.int32)
 
@@ -81,7 +81,7 @@ def FIFOrunnerAHP1(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, pe
 
         qLen = len(stationQ)
         for sQidx in range(qLen):
-            if availStation >= 0:
+            if availStation >= 1:
                 for station in range(NUMP):
                     idx = stationQ[0, 0]
                     if stationCheck[station, time] == -1 and batterySet2[idx] >= 1:
@@ -258,7 +258,7 @@ def FIFOrunnerAHP2(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, pe
 
     numt = taskSet.shape[0]
     nextRelease = np.zeros((numt), dtype = np.int32)
-    prevRelease = np.ones((numt), dtype = np.int32) * -9999
+    prevRelease = np.ones((numt), dtype = np.int32) * -9999999
 
     stationQ = np.empty((0, 6), dtype = np.int32)
 
@@ -314,7 +314,9 @@ def FIFOrunnerAHP2(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, pe
 
         qLen = len(stationQ)
         for sQidx in range(qLen):
-            if availStation >= 0:
+            if stationQ[0][1] > time:
+                break
+            if availStation >= 1:
                 for station in range(NUMP):
                     idx = stationQ[0, 0]
                     if stationCheck[station, time] == -1 and batterySet2[idx] >= 1:
@@ -493,7 +495,7 @@ def FIFOrunnerAHP3(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, pe
 
     numt = taskSet.shape[0]
     nextRelease = np.zeros((numt), dtype = np.int32)
-    prevRelease = np.ones((numt), dtype = np.int32) * -9999
+    prevRelease = np.ones((numt), dtype = np.int32) * -9999999
 
     stationQ = np.empty((0, 6), dtype = np.int32)
 
@@ -532,8 +534,9 @@ def FIFOrunnerAHP3(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, pe
                         t_early_virt = RUNTIME + 1
                         qLen = len(stationQ)
                         for sQidx in range(qLen):
-                            if stationQ[sQidx][1] >= prevRelease[idx] and stationQ[sQidx][1] < time:
+                            if stationQ[sQidx][1] >= prevRelease[idx] + TT and stationQ[sQidx][1] < time:
                                 t_early_virt = stationQ[sQidx][1]
+                                print(1)
                                 break
                         targetTime = min(time, t_early_virt)
                         a = np.vstack((stationQ, np.array([idx, targetTime, taskSet[idx, _D] + targetTime - 1, taskSet[idx, _RSW] + targetTime, taskSet[idx, _C], time], dtype=np.int32).reshape(1,6)))
@@ -559,7 +562,9 @@ def FIFOrunnerAHP3(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, pe
 
         qLen = len(stationQ)
         for sQidx in range(qLen):
-            if availStation >= 0:
+            if stationQ[0][1] > time:
+                break
+            if availStation >= 1:
                 for station in range(NUMP):
                     idx = stationQ[0, 0]
                     if stationCheck[station, time] == -1 and batterySet2[idx] >= 1:
@@ -738,7 +743,7 @@ def FIFOrunnerAHP4(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, pe
 
     numt = taskSet.shape[0]
     nextRelease = np.zeros((numt), dtype = np.int32)
-    prevRelease = np.ones((numt), dtype = np.int32) * -9999
+    prevRelease = np.ones((numt), dtype = np.int32) * -9999999
 
     stationQ = np.empty((0, 5), dtype = np.int32)
 

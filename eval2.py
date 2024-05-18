@@ -1,7 +1,7 @@
 from matplotlib.pyplot import xlabel, ylabel
 import numpy as np
 from analysis import *
-from generator import *
+from newGenerator import *
 # from partitionedRunner import *
 from runner import *
 import copy
@@ -20,28 +20,29 @@ _CG = 4 # C^CG
 _RSW = 5#
 _VD = 6
 _RCG = 7
-_CG = 8
-_CG = 4 # C^CG
 
-# Basic parameters
-UTIL = 0.75 # util  # (0-1] target utilization
-NUMT = 3    # n     # [1- ] number of tasks / number of car types
-NUMP = 4    # m     # [1- ] number of processors / number of swap stations
+# # Basic parameters
+# UTIL = 0.75 # util  # (0-1] target utilization
+# NUMT = 3    # n     # [1- ] number of tasks / number of car types
+# NUMP = 4    # m     # [1- ] number of processors / number of swap stations
 NUMS = 1000 # nSets # [1- ] number of sets / number of scenarios
-MINT = 1    # minT  # [1- ] minimum periods 
-MAXT = 100  # maxT  # [1- ] maximum periods
-MIND = 1  # minD  # [1- ] minimum deadline (multiple of WCET)
-MAXD = 5    # maxD  # [0- ] maximum deadline (multiple of periods)
+# MINT = 1    # minT  # [1- ] minimum periods 
+# MAXT = 100  # maxT  # [1- ] maximum periods
+# MIND = 1  # minD  # [1- ] minimum deadline (multiple of WCET)
+# MAXD = 5    # maxD  # [0- ] maximum deadline (multiple of periods)
 
-# Optional parameters
-OPTS = 1    #      # [0- ] random seed value
-OPTD = 1    #      # [0,1] 0: implicit-deadlines, 1: constrained-deadlines 
+# # Optional parameters
+# OPTS = 1    #      # [0- ] random seed value
+# OPTD = 1    #      # [0,1] 0: implicit-deadlines, 1: constrained-deadlines 
 
-# Battery swap station-specific parameters
-NUMC = 5    # cg    # [1- ] number of chargers
+# # Battery swap station-specific parameters
+# NUMC = 5    # cg    # [1- ] number of chargers
 
 PERIODIC = 0
 SPORADIC = 1
+
+DYNAMIC = 1
+STATIC = 0
 
 # camelCase
 n, util, nSets = None, None, None
@@ -77,20 +78,14 @@ def TtoC(taskSet, targetUtil):
 
     return T, C
 
-def mainRunner(params, chargerNUM, change, AUX):
-    assert len(params) == 10, "parameters: UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD"
-    global UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD
-    UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD = params
-
-    if change:
-        CUTIL = UTIL
-        UTIL = 0.3
+def mainRunner(params, AUX, staticdynamic):
+    sUtil, cUtil, numt, nump, numc, NUMS= params
 
     name = nameCreator(params)
 
     myRes = loadByName(name) # taskSetLoader([UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD, OPTG, OPTP])
 
-    batterySet = np.ones(NUMT) * AUX
+    batterySet = np.ones(numt) * AUX
     
     res = 0
     analysisSWFail = 0
@@ -99,6 +94,8 @@ def mainRunner(params, chargerNUM, change, AUX):
 
     R_CGdivRCGmean = np.zeros(4)
     realReleasetoRCGend = np.zeros(4)
+    R_SWdivRSWmean = np.zeros(4)
+    realReleasetoSWend = np.zeros(4)
     PreemptionRatio = np.zeros(4)
     chargerUtil = np.zeros(4)
     stationUtil = np.zeros(4)
@@ -109,23 +106,15 @@ def mainRunner(params, chargerNUM, change, AUX):
 
         taskSet = myRes[i, :, :]
 
-        if change:
-            targetUtil = CUTIL * chargerNUM
-        else:
-            targetUtil = 0.3 * chargerNUM
-        _, C_CG = TtoC(taskSet, targetUtil)
-
-        taskSet = np.hstack((taskSet, np.array([C_CG]).T))
-
-        analysisResultRM = analysisSW(taskSet, params, batterySet, C_CG, chargerNUM)
+        analysisResultRM = analysisSW(taskSet, params, batterySet)
 
         if np.sum(analysisResultRM) != -1:
 
             taskSet = analysisResultRM
 
-            taskSet = virtualDeadline(taskSet, params, batterySet, C_CG, chargerNUM)
+            taskSet = virtualDeadline(taskSet, params, batterySet)
 
-            analysisResultCG = analysisCG(taskSet, params, batterySet, C_CG, chargerNUM)
+            analysisResultCG = analysisCG(taskSet, params, batterySet)
 
             if np.sum(analysisResultCG) != -1:
 
@@ -133,28 +122,28 @@ def mainRunner(params, chargerNUM, change, AUX):
 
                 taskSet = analysisResultCG
 
-                res1 = FIFOrunnerAHP1(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, PERIODIC)                
+                res1 = FIFOrunnerAHP1(taskSet, nump, RUNTIME, batterySet, 0, numc, PERIODIC, staticdynamic)                
                 stationCheck1, chargerCheck1, Preemption1, totalRelease1, totalhighCnt1, acceptCnt1, R_SW_list1, R_CG_list1, realR_SW_list1, realR_CG_list1, RSW_list1, RCG_list1 = res1
-                res2 = FIFOrunnerAHP1(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, SPORADIC)
+                res2 = FIFOrunnerAHP1(taskSet, nump, RUNTIME, batterySet, 0, numc, SPORADIC, staticdynamic)
                 stationCheck2, chargerCheck2, Preemption2, totalRelease2, totalhighCnt2, acceptCnt2, R_SW_list2, R_CG_list2, realR_SW_list2, realR_CG_list2, RSW_list2, RCG_list2 = res2                              
-                res4 = FIFOrunnerAHP2(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, SPORADIC)                
+                res4 = FIFOrunnerAHP2(taskSet, nump, RUNTIME, batterySet, 0, numc, SPORADIC, staticdynamic)                
                 stationCheck4, chargerCheck4, Preemption4, totalRelease4, totalhighCnt4, acceptCnt4, R_SW_list4, R_CG_list4, realR_SW_list4, realR_CG_list4, RSW_list4, RCG_list4 = res4
-                res6 = FIFOrunnerAHP3(taskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, SPORADIC)                
+                res6 = FIFOrunnerAHP3(taskSet, nump, RUNTIME, batterySet, 0, numc, SPORADIC, staticdynamic)                
                 stationCheck6, chargerCheck6, Preemption6, totalRelease6, totalhighCnt6, acceptCnt6, R_SW_list6, R_CG_list6, realR_SW_list6, realR_CG_list6, RSW_list6, RCG_list6 = res6
 
 
                 stationUtil += np.array([
-                    np.sum(stationCheck1 != -1)/RUNTIME/NUMT,
-                    np.sum(stationCheck2 != -1)/RUNTIME/NUMT,
-                    np.sum(stationCheck4 != -1)/RUNTIME/NUMT,
-                    np.sum(stationCheck6 != -1)/RUNTIME/NUMT
+                    np.sum(stationCheck1 != -1)/RUNTIME/nump,
+                    np.sum(stationCheck2 != -1)/RUNTIME/nump,
+                    np.sum(stationCheck4 != -1)/RUNTIME/nump,
+                    np.sum(stationCheck6 != -1)/RUNTIME/nump
                 ])
 
                 chargerUtil += np.array([
-                    np.sum(chargerCheck1 != -1)/RUNTIME/chargerNUM,
-                    np.sum(chargerCheck2 != -1)/RUNTIME/chargerNUM,
-                    np.sum(chargerCheck4 != -1)/RUNTIME/chargerNUM,
-                    np.sum(chargerCheck6 != -1)/RUNTIME/chargerNUM
+                    np.sum(chargerCheck1 != -1)/RUNTIME/numc,
+                    np.sum(chargerCheck2 != -1)/RUNTIME/numc,
+                    np.sum(chargerCheck4 != -1)/RUNTIME/numc,
+                    np.sum(chargerCheck6 != -1)/RUNTIME/numc
                 ])
 
                 realReleasetoRCGend +=  np.array([
@@ -169,6 +158,20 @@ def mainRunner(params, chargerNUM, change, AUX):
                     (R_CG_list2 / RCG_list2).mean(),
                     (R_CG_list4 / RCG_list4).mean(),
                     (R_CG_list6 / RCG_list6).mean()
+                ])
+
+                realReleasetoSWend +=  np.array([
+                    (RSW_list1 +  realR_SW_list1 - R_SW_list1).mean(),
+                    (RSW_list2 +  realR_SW_list2 - R_SW_list2).mean(),
+                    (RSW_list4 +  realR_SW_list4 - R_SW_list4).mean(),
+                    (RSW_list6 +  realR_SW_list6 - R_SW_list6).mean()
+                ])
+
+                R_SWdivRSWmean +=  np.array([
+                    (R_SW_list1 / RSW_list1).mean(),
+                    (R_SW_list2 / RSW_list2).mean(),
+                    (R_SW_list4 / RSW_list4).mean(),
+                    (R_SW_list6 / RSW_list6).mean()
                 ])
 
                 PreemptionRatio += np.array([
@@ -203,326 +206,305 @@ def mainRunner(params, chargerNUM, change, AUX):
         R_CGdivRCGmean = R_CGdivRCGmean / res
         PreemptionRatio = PreemptionRatio / res
         acceptRatio = acceptRatio / res
+        realReleasetoSWend = realReleasetoSWend / res
+        R_SWdivRSWmean = R_SWdivRSWmean / res
     # return res, vdli, analysisSWFail, analysisCGFail
-    return stationUtil, chargerUtil, realReleasetoRCGend, R_CGdivRCGmean, PreemptionRatio, acceptRatio, res
+    return stationUtil, chargerUtil, realReleasetoRCGend, R_SWdivRSWmean, PreemptionRatio, acceptRatio, res, R_CGdivRCGmean, realReleasetoSWend
 
-def swapUtil():
-    utilLi = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-    numtLi = [4]
-    numpLi = [4]
-    numcLi = [4]
+def draw(filename, varyingLi):
 
-    res = []
 
-    for util in utilLi:
-        for numt in numtLi:
-            for nump in numpLi:
-                for numc in numcLi:
-                    UTIL, NUMT, NUMP = util, numt, nump
-                    params = [UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD]
-                    result = mainRunner(params, numc, False, 5)
-                    res.append(result)
+    if not os.path.exists(filename):
+        os.makedirs(filename)
+
+    res = pickleLoader(filename)
     res = np.array(res)
-    pickleSaver("swapUtil", res)
-    return 1
 
-def chargerUtil():
-    utilLi = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-    numtLi = [4]
-    numpLi = [4]
-    numcLi = [4]
-
-    res = []
-    res2 = []
-    analysisSWFailLi = []
-    analysisCGFailLi = []
-
-    for util in utilLi:
-        for numt in numtLi:
-            for nump in numpLi:
-                for numc in numcLi:
-                    UTIL, NUMT, NUMP = util, numt, nump
-                    params = [UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD]
-                    result = mainRunner(params, numc, False, 5)
-                    res.append(result)
-    res = np.array(res)
-    pickleSaver("chargerUtil", res) 
     plt.figure()
     temp = []
-    for i in range(len(utilLi)):
+    for i in range(len(varyingLi)):
         temp.append((res[:,0])[i])
     temp = np.array(temp)
-    plt.plot(utilLi, temp[:,1], label="AHP1")
-    plt.plot(utilLi, temp[:,2], label="AHP2")
-    plt.plot(utilLi, temp[:,3], label="AHP3")
-    plt.xlabel("station utilization")
+    plt.plot(varyingLi, temp[:,0], label="periodic")
+    plt.plot(varyingLi, temp[:,1], label="AHP1")
+    plt.plot(varyingLi, temp[:,2], label="AHP2")
+    plt.plot(varyingLi, temp[:,3], label="AHP3")
+    plt.xlabel(filename)
     plt.ylabel("station util")
     plt.legend()
     plt.tight_layout(pad = 0.2)
+    plt.savefig(filename+"/station util")
 
     plt.figure()
     temp = []
-    for i in range(len(utilLi)):
+    for i in range(len(varyingLi)):
         temp.append((res[:,1])[i])
     temp = np.array(temp)
-    plt.plot(utilLi, temp[:,1], label="AHP1")
-    plt.plot(utilLi, temp[:,2], label="AHP2")
-    plt.plot(utilLi, temp[:,3], label="AHP3")
-    plt.xlabel("charger utilization")
-    plt.ylabel("station util")
+    plt.plot(varyingLi, temp[:,0], label="periodic")
+    plt.plot(varyingLi, temp[:,1], label="AHP1")
+    plt.plot(varyingLi, temp[:,2], label="AHP2")
+    plt.plot(varyingLi, temp[:,3], label="AHP3")
+    plt.xlabel(filename)
+    plt.ylabel("charger util")
     plt.legend()
     plt.tight_layout(pad = 0.2)
+    plt.savefig(filename+"/charger util")
 
     plt.figure()
     temp = []
-    for i in range(len(utilLi)):
+    for i in range(len(varyingLi)):
         temp.append((res[:,2])[i])
     temp = np.array(temp)
-    plt.plot(utilLi, temp[:,1], label="AHP1")
-    plt.plot(utilLi, temp[:,2], label="AHP2")
-    plt.plot(utilLi, temp[:,3], label="AHP3")
-    plt.xlabel("charger utilization")
+    plt.plot(varyingLi, temp[:,0], label="periodic")
+    plt.plot(varyingLi, temp[:,1], label="AHP1")
+    plt.plot(varyingLi, temp[:,2], label="AHP2")
+    plt.plot(varyingLi, temp[:,3], label="AHP3")
+    plt.xlabel(filename)
     plt.ylabel("realReleasetoRCGend")
     plt.legend()
     plt.tight_layout(pad = 0.2)
+    plt.savefig(filename+"/realReleasetoRCGend")
 
     plt.figure()
     temp = []
-    for i in range(len(utilLi)):
+    for i in range(len(varyingLi)):
         temp.append((res[:,3])[i])
     temp = np.array(temp)
-    plt.plot(utilLi, temp[:,1], label="AHP1")
-    plt.plot(utilLi, temp[:,2], label="AHP2")
-    plt.plot(utilLi, temp[:,3], label="AHP3")
-    plt.xlabel("charger utilization")
+    plt.plot(varyingLi, temp[:,0], label="periodic")
+    plt.plot(varyingLi, temp[:,1], label="AHP1")
+    plt.plot(varyingLi, temp[:,2], label="AHP2")
+    plt.plot(varyingLi, temp[:,3], label="AHP3")
+    plt.xlabel(filename)
+    plt.ylabel("R_SWdivRSWmean")
+    plt.legend()
+    plt.tight_layout(pad = 0.2)
+    plt.savefig(filename+"/R_SWdivRSWmean")
+    # plt.show()
+
+    plt.figure()
+    temp = []
+    for i in range(len(varyingLi)):
+        temp.append((res[:,-2])[i])
+    temp = np.array(temp)
+    plt.plot(varyingLi, temp[:,0], label="periodic")
+    plt.plot(varyingLi, temp[:,1], label="AHP1")
+    plt.plot(varyingLi, temp[:,2], label="AHP2")
+    plt.plot(varyingLi, temp[:,3], label="AHP3")
+    plt.xlabel(filename)
     plt.ylabel("R_CGdivRCGmean")
     plt.legend()
     plt.tight_layout(pad = 0.2)
-    # plt.show()
+    plt.savefig(filename+"/R_CGdivRCGmean")
 
     plt.figure()
     temp = []
-    for i in range(len(utilLi)):
+    for i in range(len(varyingLi)):
+        temp.append((res[:,-1])[i])
+    temp = np.array(temp)
+    plt.plot(varyingLi, temp[:,0], label="periodic")
+    plt.plot(varyingLi, temp[:,1], label="AHP1")
+    plt.plot(varyingLi, temp[:,2], label="AHP2")
+    plt.plot(varyingLi, temp[:,3], label="AHP3")
+    plt.xlabel(filename)
+    plt.ylabel("realReleasetoSWend")
+    plt.legend()
+    plt.tight_layout(pad = 0.2)
+    plt.savefig(filename+"/realReleasetoSWend")
+
+    plt.figure()
+    temp = []
+    for i in range(len(varyingLi)):
         temp.append((res[:,4])[i])
     temp = np.array(temp)
-    plt.plot(utilLi, temp[:,1], label="AHP1")
-    plt.plot(utilLi, temp[:,2], label="AHP2")
-    plt.plot(utilLi, temp[:,3], label="AHP3")
-    plt.xlabel("charger utilization")
+    plt.plot(varyingLi, temp[:,0], label="periodic")
+    plt.plot(varyingLi, temp[:,1], label="AHP1")
+    plt.plot(varyingLi, temp[:,2], label="AHP2")
+    plt.plot(varyingLi, temp[:,3], label="AHP3")
+    plt.xlabel(filename)
     plt.ylabel("PreemptionRatio")
     plt.legend()
     plt.tight_layout(pad = 0.2)
+    plt.savefig(filename+"/PreemptionRatio")
     # plt.show()
 
     plt.figure()
     temp = []
-    for i in range(len(utilLi)):
+    for i in range(len(varyingLi)):
         temp.append((res[:,5])[i])
     temp = np.array(temp)
-    plt.plot(utilLi, temp[:,1], label="AHP1")
-    plt.plot(utilLi, temp[:,2], label="AHP2")
-    plt.plot(utilLi, temp[:,3], label="AHP3")
-    plt.xlabel("charger utilization")
+    plt.plot(varyingLi, temp[:,0], label="periodic")
+    plt.plot(varyingLi, temp[:,1], label="AHP1")
+    plt.plot(varyingLi, temp[:,2], label="AHP2")
+    plt.plot(varyingLi, temp[:,3], label="AHP3")
+    plt.xlabel(filename)
     plt.ylabel("acceptRatio")
     plt.legend()
     plt.tight_layout(pad = 0.2)
+    plt.savefig(filename+"/acceptRatio")
+
     # plt.show()
 
+def swapUtil():
+    stationUtilLi = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
+    chargerUtilLi = [0.5]
+    numtLi = [4]
+    numpLi = [2]
+    numcLi = [30]
+    aux =15
+    res = []
+    for sUtil in stationUtilLi:
+        for cUtil in chargerUtilLi:
+            for numt in numtLi:
+                for nump in numpLi:
+                    for numc in numcLi:
+                        params = [sUtil, cUtil, numt, nump, numc, NUMS]
+                        result = mainRunner(params, aux, STATIC)
+                        res.append(result)
+    res = np.array(res)
+    pickleSaver("station utilization", res)
+    return 1
+
+def chargerUtil():
+    stationUtilLi = [0.5]
+    chargerUtilLi = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    numtLi = [4]
+    numpLi = [2]
+    numcLi = [30]
+    aux =15
+
+    res = []
+
+    for sUtil in stationUtilLi:
+        for cUtil in chargerUtilLi:
+            for numt in numtLi:
+                for nump in numpLi:
+                    for numc in numcLi:
+                        params = [sUtil, cUtil, numt, nump, numc, NUMS]
+                        result = mainRunner(params, aux, STATIC)
+                        res.append(result)
+    res = np.array(res)
+    pickleSaver("charger utilization", res) 
     return 1
 
 def numT():
-    utilLi = [0.3]
-    numtLi = [2,4,6,8,10,12,14,16,18,20]
-    numpLi = [4]
-    numcLi = [4]
+    stationUtilLi = [0.5]
+    chargerUtilLi = [0.5]
+    numtLi = np.arange(1,11,1)
+    numpLi = [2]
+    numcLi = [30]
+    aux =15
 
     res = []
-    res2 = []
-    analysisSWFailLi = []
-    analysisCGFailLi = []
-
-    for util in utilLi:
-        for numt in numtLi:
-            for nump in numpLi:
-                for numc in numcLi:
-                    UTIL, NUMT, NUMP = util, numt, nump
-                    params = [UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD]
-                    result = mainRunner(params, numc, False, 5)
-                    res.append(result)
+    for sUtil in stationUtilLi:
+        for cUtil in chargerUtilLi:
+            for numt in numtLi:
+                for nump in numpLi:
+                    for numc in numcLi:
+                        params = [sUtil, cUtil, numt, nump, numc, NUMS]
+                        result = mainRunner(params, aux, STATIC)
+                        res.append(result)
     res = np.array(res)
-    pickleSaver("number of types", res) 
-
+    pickleSaver("number of types", res)
     return 1
 
 
 def numP():
-    utilLi = [0.3]
+    stationUtilLi = [0.5]
+    chargerUtilLi = [0.5]
     numtLi = [4]
-    numpLi = np.arange(1,11,1)
-    numcLi = [4]
-
+    numpLi = [1,2,3,4]
+    numcLi = [30]
+    aux =15
     res = []
-    res2 = []
-    analysisSWFailLi = []
-    analysisCGFailLi = []
-
-    for util in utilLi:
-        for numt in numtLi:
-            for nump in numpLi:
-                for numc in numcLi:
-                    UTIL, NUMT, NUMP = util, numt, nump
-                    params = [UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD]
-                    result = mainRunner(params, numc, False, 5)
-                    res.append(result)
+    for sUtil in stationUtilLi:
+        for cUtil in chargerUtilLi:
+            for numt in numtLi:
+                for nump in numpLi:
+                    for numc in numcLi:
+                        params = [sUtil, cUtil, numt, nump, numc, NUMS]
+                        result = mainRunner(params, aux, STATIC)
+                        res.append(result)
     res = np.array(res)
     pickleSaver("number of stations", res) 
-
     return 1
 
 
 def numC():
-    utilLi = [0.3]
+    stationUtilLi = [0.5]
+    chargerUtilLi = [0.5]
     numtLi = [4]
-    numpLi = [4]
-    numcLi = np.arange(1,11,1)
+    numpLi = [2]
+    numcLi = [20, 25, 30, 35, 40]
+    aux =15
 
     res = []
-    res2 = []
-    analysisSWFailLi = []
-    analysisCGFailLi = []
 
-    for util in utilLi:
-        for numt in numtLi:
-            for nump in numpLi:
-                for numc in numcLi:
-                    UTIL, NUMT, NUMP = util, numt, nump
-                    params = [UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD]
-                    result = mainRunner(params, numc, False, 5)
-                    res.append(result)
+    for sUtil in stationUtilLi:
+        for cUtil in chargerUtilLi:
+            for numt in numtLi:
+                for nump in numpLi:
+                    for numc in numcLi:
+                        params = [sUtil, cUtil, numt, nump, numc, NUMS]
+                        result = mainRunner(params, aux, STATIC)
+                        res.append(result)
     res = np.array(res)
     pickleSaver("number of chargers", res) 
     return 1
 
 
 def numBat():
+    batLi = np.arange(3,37, 3)
 
-    utilLi = [0.3]
+    stationUtilLi = [0.5]
+    chargerUtilLi = [0.5]
     numtLi = [4]
-    numpLi = [4]
-    numcLi = [4]
-
-    batLi = np.arange(1,21, 1)
-
+    numpLi = [2]
+    numcLi = [30]
 
     res = []
-    res2 = []
-    analysisSWFailLi = []
-    analysisCGFailLi = []
 
-    for util in utilLi:
-        for numt in numtLi:
-            for nump in numpLi:
-                for numc in numcLi:
-                    for aux in batLi:
-                        UTIL, NUMT, NUMP = util, numt, nump
-                        params = [UTIL, NUMT, NUMP, NUMS, MINT, MAXT, OPTS, OPTD, MIND, MAXD]
-                        result = mainRunner(params, numc, False, 5)
-                        res.append(result)
+    for sUtil in stationUtilLi:
+        for cUtil in chargerUtilLi:
+            for numt in numtLi:
+                for nump in numpLi:
+                    for numc in numcLi:
+                        for aux in batLi:
+                            params = [sUtil, cUtil, numt, nump, numc, NUMS]
+                            result = mainRunner(params, aux, STATIC)
+                            res.append(result)
     res = np.array(res)
     pickleSaver("number of batteries", res) 
+    return 1
 
+stationUtilLi = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
+chargerUtilLi = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+numtLi = np.arange(1,11,1)
+numpLi = [1,2,3,4]
+numcLi = [20, 25, 30, 35, 40]
+batLi = np.arange(3,37, 3)
 
-    plt.figure()
-    temp = []
-    for i in range(len(batLi)):
-        temp.append((res[:,0])[i])
-    temp = np.array(temp)
-    plt.plot(batLi, temp[:,1], label="AHP1")
-    plt.plot(batLi, temp[:,2], label="AHP2")
-    plt.plot(batLi, temp[:,3], label="AHP3")
-    plt.xlabel("number of batteries")
-    plt.ylabel("station util")
-    plt.legend()
-    plt.tight_layout(pad = 0.2)
+start2 = time.time()
 
-    plt.figure()
-    temp = []
-    for i in range(len(batLi)):
-        temp.append((res[:,1])[i])
-    temp = np.array(temp)
-    plt.plot(batLi, temp[:,1], label="AHP1")
-    plt.plot(batLi, temp[:,2], label="AHP2")
-    plt.plot(batLi, temp[:,3], label="AHP3")
-    plt.xlabel("number of batteries")
-    plt.ylabel("charger util")
-    plt.legend()
-    plt.tight_layout(pad = 0.2)
-
-    plt.figure()
-    temp = []
-    for i in range(len(batLi)):
-        temp.append((res[:,2])[i])
-    temp = np.array(temp)
-    plt.plot(batLi, temp[:,1], label="AHP1")
-    plt.plot(batLi, temp[:,2], label="AHP2")
-    plt.plot(batLi, temp[:,3], label="AHP3")
-    plt.xlabel("number of batteries")
-    plt.ylabel("realReleasetoRCGend")
-    plt.legend()
-    plt.tight_layout(pad = 0.2)
-
-    plt.figure()
-    temp = []
-    for i in range(len(batLi)):
-        temp.append((res[:,3])[i])
-    temp = np.array(temp)
-    plt.plot(batLi, temp[:,1], label="AHP1")
-    plt.plot(batLi, temp[:,2], label="AHP2")
-    plt.plot(batLi, temp[:,3], label="AHP3")
-    plt.xlabel("number of batteries")
-    plt.ylabel("R_CGdivRCGmean")
-    plt.legend()
-    plt.tight_layout(pad = 0.2)
-    # plt.show()
-
-    plt.figure()
-    temp = []
-    for i in range(len(batLi)):
-        temp.append((res[:,4])[i])
-    temp = np.array(temp)
-    plt.plot(batLi, temp[:,1], label="AHP1")
-    plt.plot(batLi, temp[:,2], label="AHP2")
-    plt.plot(batLi, temp[:,3], label="AHP3")
-    plt.xlabel("number of batteries")
-    plt.ylabel("PreemptionRatio")
-    plt.legend()
-    plt.tight_layout(pad = 0.2)
-    # plt.show()
-
-    plt.figure()
-    temp = []
-    for i in range(len(batLi)):
-        temp.append((res[:,5])[i])
-    temp = np.array(temp)
-    plt.plot(batLi, temp[:,1], label="AHP1")
-    plt.plot(batLi, temp[:,2], label="AHP2")
-    plt.plot(batLi, temp[:,3], label="AHP3")
-    plt.xlabel("number of batteries")
-    plt.ylabel("acceptRatio")
-    plt.legend()
-    plt.tight_layout(pad = 0.2)
-    plt.show()
-
-
-# chargerUtil()
+swapUtil()
 # numBat()
-# swapUtil()
+# chargerUtil()
 # numT()
 # numP()
-numC()
+# numC()
 
 
-plt.show()
+end2 = time.time()
+
+print(end2 - start2)
+
+# draw("station utilization", stationUtilLi)
+# draw("charger utilization", chargerUtilLi)
+# draw("number of types", numtLi)
+# draw("number of stations", numpLi)
+# draw("number of chargers", numcLi)
+# draw("number of batteries", batLi)
+
+# plt.show()
 
 
 print("a")
