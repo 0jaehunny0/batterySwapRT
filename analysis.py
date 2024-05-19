@@ -2,6 +2,7 @@ import numpy as np
 import operator
 import copy
 from numba import jit, njit
+from heapq import heappushpop, heapify
 # period, wcet, deadline, gumbel, power, release, seed, slack, fake wcet
 _T = 0
 _C = 1  #  C^SW
@@ -162,15 +163,18 @@ def analysisSW(taskSet, params, batterySet):
         newRList = np.array(newRList)
 
         if sum(prevR == newRList) == numt:
-            if sum(taskSet[:, _RSW] >= taskSet[:,_D]) >= 1:
+            if sum(taskSet[:, _RSW] > taskSet[:,_D]) >= 1:
+                print(taskSet[:, _RSW])
                 return [-1]
-            # print(taskSet[:, _RSW])
+            print(taskSet[:, _RSW])
             return taskSet # schedulable, conversed
 
         if sum(prevR <= newRList) == numt:
 
-            if sum(taskSet[:, _RSW] >= taskSet[:,_D]) >= 1:
+            if sum(taskSet[:, _RSW] > taskSet[:,_D]) >= 1:
+                print(taskSet[:, _RSW])
                 return [-1]
+            print(taskSet[:, _RSW])
             return taskSet # schedulable, conversed
 
             # return [-1] # unsched
@@ -197,10 +201,10 @@ def NEWanalysisSW(taskSet, params, batterySet):
     for idx in range(numt):
         onemyBL = 0
         oneBL = 0
-        if C[idx] <= T[idx]:
+        if C[idx] > T[idx]:
             for a in range(1, int(np.floor(C[idx]/T[idx])) + 1):
                 onemyBL += np.min([C[idx], C[idx] - a * T[idx]])
-        if D[idx] <= T[idx]:
+        if D[idx] > T[idx]:
             for a in range(1, int(np.floor(D[idx]/T[idx])) + 1):
                 oneBL += np.min([C[idx], D[idx] - a * T[idx]])
         myBL.append(onemyBL)
@@ -227,10 +231,10 @@ def NEWanalysisSW(taskSet, params, batterySet):
         for idx in range(numt):
             onemyBL = 0
             oneBL = 0
-            if prevR[idx] <= T[idx]:
+            if prevR[idx] > T[idx]:
                 for a in range(1, int(np.floor(prevR[idx]/T[idx])) + 1):
                     onemyBL += np.min([C[idx], prevR[idx] - a * T[idx]])
-            if prevRy[idx] <= T[idx]:
+            if prevRy[idx] > T[idx]:
                 for a in range(1, int(np.floor(prevRy[idx]/T[idx])) + 1):
                     oneBL += np.min([C[idx], prevRy[idx] - a * T[idx]])
             myBL.append(onemyBL)
@@ -247,20 +251,100 @@ def NEWanalysisSW(taskSet, params, batterySet):
         newRList = np.array(newRList)
 
         if sum(prevR == newRList) == numt:
-            if sum(taskSet[:, _RSW] >= taskSet[:,_D]) >= 1:
+            if sum(taskSet[:, _RSW] > taskSet[:,_D]) >= 1:
+                print(taskSet[:, _RSW])
+                return [-1]
+            print(taskSet[:, _RSW])
+            return taskSet # schedulable, conversed
+
+        if sum(prevR <= newRList) == numt:
+
+            if sum(taskSet[:, _RSW] > taskSet[:,_D]) >= 1:
+                print(taskSet[:, _RSW])
+                return [-1]
+            print(taskSet[:, _RSW])
+            return taskSet # schedulable, conversed
+
+            # return [-1] # unsched
+        
+        taskSet[:, _RSW] = newRList
+
+
+def NEWanalysisSW2(taskSet, params, batterySet):
+
+    sUtil, cUtil, numt, nump, numc, NUMS = params
+
+    # init R_x(i) = D_x
+    taskSet = np.hstack((taskSet, np.array([taskSet[:, _D]]).T))
+
+    T = taskSet[:,_T]
+    C = taskSet[:,_C]
+    D = taskSet[:,_D]
+    NSW = nump
+
+    prevR = C
+    prevRy = D
+    firstTry = True
+
+    while True:
+        BL = []
+        for idx in range(numt):
+            oneBL = 0            
+            BF = list(np.zeros(NSW, dtype=np.int32)) 
+            heapify(BF)            
+            for a in range(1, int(np.floor(prevR[idx]/T[idx])) + 1):
+                val = prevR[idx] - a * T[idx]
+                if val > C[idx]:
+                    oneBL += C[idx]
+                elif val > BF[0]:
+                    heappushpop(BF, val)
+            for idx2 in range(numt):
+                if idx == idx2: continue
+                for a in range(1, int(np.floor(prevRy[idx2]/T[idx2])) + 1):
+                    val = prevRy[idx2] - a * T[idx2]
+                    if val > C[idx2]:
+                        oneBL += C[idx2]
+                    elif val > BF[0]:
+                        heappushpop(BF, val)
+            oneBL += sum(BF)
+            BL.append(oneBL)
+        BL = np.array(BL)
+        newRList = []
+        for idx in range(numt):
+            first = C[idx]
+            second = BL[idx]
+            thrid = sum(C) - C[idx]
+            newR = np.ceil( first + (second + thrid)/NSW)
+            newRList.append(newR)
+        newRList = np.array(newRList)
+
+        if firstTry:
+            firstTry = False
+            taskSet[:, _RSW] = newRList
+            prevR = taskSet[:, _RSW]
+            prevRy = np.fmin(D, prevR)
+            continue
+
+        if sum(prevR == newRList) == numt:
+            if sum(taskSet[:, _RSW] > taskSet[:,_D]) >= 1:
+                # print(taskSet[:, _RSW])
                 return [-1]
             # print(taskSet[:, _RSW])
             return taskSet # schedulable, conversed
 
         if sum(prevR <= newRList) == numt:
 
-            if sum(taskSet[:, _RSW] >= taskSet[:,_D]) >= 1:
+            if sum(taskSet[:, _RSW] > taskSet[:,_D]) >= 1:
+                # print(taskSet[:, _RSW])
                 return [-1]
+            # print(taskSet[:, _RSW])
             return taskSet # schedulable, conversed
 
             # return [-1] # unsched
         
         taskSet[:, _RSW] = newRList
+        prevR = taskSet[:, _RSW]
+        prevRy = np.fmin(D, prevR)
 
 def NEWanalysisCG(taskSet, params, batterySet):
 
@@ -281,10 +365,10 @@ def NEWanalysisCG(taskSet, params, batterySet):
     for idx in range(numt):
         onemyBL = 0
         oneBL = 0
-        if C[idx] <= T[idx]:
+        if C[idx] > T[idx]:
             for a in range(1, int(np.floor(C[idx]/T[idx])) + 1):
                 onemyBL += np.min([C[idx], C[idx] - a * T[idx]])
-        if D[idx] <= T[idx]:
+        if D[idx] > T[idx]:
             for a in range(1, int(np.floor(D[idx]/T[idx])) + 1):
                 oneBL += np.min([C[idx], D[idx] - a * T[idx]])
         myBL.append(onemyBL)
@@ -311,10 +395,10 @@ def NEWanalysisCG(taskSet, params, batterySet):
         for idx in range(numt):
             onemyBL = 0
             oneBL = 0
-            if prevR[idx] <= T[idx]:
+            if prevR[idx] > T[idx]:
                 for a in range(1, int(np.floor(prevR[idx]/T[idx])) + 1):
                     onemyBL += np.min([C[idx], prevR[idx] - a * T[idx]])
-            if prevRy[idx] <= T[idx]:
+            if prevRy[idx] > T[idx]:
                 for a in range(1, int(np.floor(prevRy[idx]/T[idx])) + 1):
                     oneBL += np.min([C[idx], prevRy[idx] - a * T[idx]])
             myBL.append(onemyBL)
@@ -331,17 +415,95 @@ def NEWanalysisCG(taskSet, params, batterySet):
         newRList = np.array(newRList)
 
         if sum(prevR == newRList) == numt:
-            if sum(taskSet[:, _RCG] + taskSet[:, _RSW] >= taskSet[:,_VD]) >= 1:
+            if sum(taskSet[:, _RCG] > taskSet[:,_VD]) >= 1:
                 return [-1]
             # print(taskSet[:, _RCG])
             return taskSet # schedulable, conversed
 
         if sum(prevR <= newRList) == numt:
 
-            if sum(taskSet[:, _RCG] + taskSet[:, _RSW] >= taskSet[:,_VD]) >= 1:
+            if sum(taskSet[:, _RCG] > taskSet[:,_VD]) >= 1:
                 return [-1]
             return taskSet # schedulable, conversed
 
             # return [-1] # unsched
         
         taskSet[:, _RCG] = newRList
+
+
+
+def NEWanalysisCG2(taskSet, params, batterySet):
+
+    sUtil, cUtil, numt, nump, numc, NUMS = params
+
+    # init R_x(i) = D_x
+    taskSet = np.hstack((taskSet, np.array([taskSet[:, _VD]]).T))
+
+    T = taskSet[:,_T]
+    C = taskSet[:,_CG]
+    D = taskSet[:,_VD]
+    NCG = numc
+
+    prevR = C
+    prevRy = D
+    firstTry = True
+
+    while True:
+        BL = []
+        for idx in range(numt):
+            oneBL = 0            
+            BF = list(np.zeros(NCG, dtype=np.int32)) 
+            heapify(BF)            
+            for a in range(1, int(np.floor(prevR[idx]/T[idx])) + 1):
+                val = prevR[idx] - a * T[idx]
+                if val > C[idx]:
+                    oneBL += C[idx]
+                elif val > BF[0]:
+                    heappushpop(BF, val)
+            for idx2 in range(numt):
+                if idx == idx2: continue
+                for a in range(1, int(np.floor(prevRy[idx2]/T[idx2])) + 1):
+                    val = prevRy[idx2] - a * T[idx2]
+                    if val > C[idx2]:
+                        oneBL += C[idx2]
+                    elif val > BF[0]:
+                        heappushpop(BF, val)
+            oneBL += sum(BF)
+            BL.append(oneBL)
+        BL = np.array(BL)
+        newRList = []
+        for idx in range(numt):
+            first = C[idx]
+            second = BL[idx]
+            thrid = sum(C) - C[idx]
+            newR = np.ceil( first + (second + thrid)/NCG)
+            newRList.append(newR)
+        newRList = np.array(newRList)
+
+        if firstTry:
+            firstTry = False
+            taskSet[:, _RCG] = newRList
+            prevR = taskSet[:, _RCG]
+            prevRy = np.fmin(D, prevR)
+            continue
+
+        if sum(prevR == newRList) == numt:
+            if sum(taskSet[:, _RCG] > taskSet[:,_VD]) >= 1:
+                # print(taskSet[:, _RCG])
+                return [-1]
+            # print(taskSet[:, _RCG])
+            return taskSet # schedulable, conversed
+
+        if sum(prevR <= newRList) == numt:
+
+            if sum(taskSet[:, _RCG] > taskSet[:,_VD]) >= 1:
+                # print(taskSet[:, _RCG])
+                return [-1]
+            # print(taskSet[:, _RCG])
+            return taskSet # schedulable, conversed
+
+            # return [-1] # unsched
+        
+        taskSet[:, _RCG] = newRList
+        prevR = taskSet[:, _RCG]
+        prevRy = np.fmin(D, prevR)

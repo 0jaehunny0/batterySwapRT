@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 import time
 
-RUNTIME = 100000
+RUNTIME = 432000
 _T = 0
 _C = 1  #  C^SW
 _D = 2
@@ -92,21 +92,25 @@ def mainRunner(params, AUX, staticdynamic):
     analysisCGFail = 0
     vdli = []
 
-    R_CGdivRCGmean = np.zeros(4)
-    realReleasetoRCGend = np.zeros(4)
-    R_SWdivRSWmean = np.zeros(4)
-    realReleasetoSWend = np.zeros(4)
-    PreemptionRatio = np.zeros(4)
-    chargerUtil = np.zeros(4)
-    stationUtil = np.zeros(4)
-    acceptRatio = np.zeros(4)
+    mean_RCG_tight_ratio = np.zeros(3)
+    realReleasetoRCGend = np.zeros(3)
+    mean_RSW_tight_ratio = np.zeros(3)
+    realReleasetoRSWend = np.zeros(3)
+    PreemptionRatio = np.zeros(3)
+    chargerUtil = np.zeros(3)
+    stationUtil = np.zeros(3)
+    acceptRatio = np.zeros(3)
+    max_RCG_tight_ratio = np.zeros(3)
+    max_RSW_tight_ratio = np.zeros(3)
+    max_max_RCG_tight_ratio = np.zeros(3)
+    max_max_RSW_tight_ratio = np.zeros(3)
     
     for i in range(0, NUMS):
         np.random.seed(i)
 
         taskSet = myRes[i, :, :]
 
-        analysisResultRM = analysisSW(taskSet, params, batterySet)
+        analysisResultRM = NEWanalysisSW2(taskSet, params, batterySet)
 
         if np.sum(analysisResultRM) != -1:
 
@@ -114,7 +118,7 @@ def mainRunner(params, AUX, staticdynamic):
 
             taskSet = virtualDeadline(taskSet, params, batterySet)
 
-            analysisResultCG = analysisCG(taskSet, params, batterySet)
+            analysisResultCG = NEWanalysisCG2(taskSet, params, batterySet)
 
             if np.sum(analysisResultCG) != -1:
 
@@ -128,65 +132,84 @@ def mainRunner(params, AUX, staticdynamic):
                 stationCheck2, chargerCheck2, Preemption2, totalRelease2, totalhighCnt2, acceptCnt2, R_SW_list2, R_CG_list2, realR_SW_list2, realR_CG_list2, RSW_list2, RCG_list2 = res2                              
                 res4 = FIFOrunnerAHP2(taskSet, nump, RUNTIME, batterySet, 0, numc, SPORADIC, staticdynamic)                
                 stationCheck4, chargerCheck4, Preemption4, totalRelease4, totalhighCnt4, acceptCnt4, R_SW_list4, R_CG_list4, realR_SW_list4, realR_CG_list4, RSW_list4, RCG_list4 = res4
-                res6 = FIFOrunnerAHP3(taskSet, nump, RUNTIME, batterySet, 0, numc, SPORADIC, staticdynamic)                
-                stationCheck6, chargerCheck6, Preemption6, totalRelease6, totalhighCnt6, acceptCnt6, R_SW_list6, R_CG_list6, realR_SW_list6, realR_CG_list6, RSW_list6, RCG_list6 = res6
-
 
                 stationUtil += np.array([
                     np.sum(stationCheck1 != -1)/RUNTIME/nump,
                     np.sum(stationCheck2 != -1)/RUNTIME/nump,
                     np.sum(stationCheck4 != -1)/RUNTIME/nump,
-                    np.sum(stationCheck6 != -1)/RUNTIME/nump
+                
                 ])
 
                 chargerUtil += np.array([
                     np.sum(chargerCheck1 != -1)/RUNTIME/numc,
                     np.sum(chargerCheck2 != -1)/RUNTIME/numc,
                     np.sum(chargerCheck4 != -1)/RUNTIME/numc,
-                    np.sum(chargerCheck6 != -1)/RUNTIME/numc
+                    
                 ])
 
                 realReleasetoRCGend +=  np.array([
                     (RCG_list1 +  realR_CG_list1 - R_CG_list1).mean(),
                     (RCG_list2 +  realR_CG_list2 - R_CG_list2).mean(),
                     (RCG_list4 +  realR_CG_list4 - R_CG_list4).mean(),
-                    (RCG_list6 +  realR_CG_list6 - R_CG_list6).mean()
+                    
                 ])
 
-                R_CGdivRCGmean +=  np.array([
+                mean_RCG_tight_ratio +=  np.array([
                     (R_CG_list1 / RCG_list1).mean(),
                     (R_CG_list2 / RCG_list2).mean(),
                     (R_CG_list4 / RCG_list4).mean(),
-                    (R_CG_list6 / RCG_list6).mean()
+                    
                 ])
 
-                realReleasetoSWend +=  np.array([
+                realReleasetoRSWend +=  np.array([
                     (RSW_list1 +  realR_SW_list1 - R_SW_list1).mean(),
                     (RSW_list2 +  realR_SW_list2 - R_SW_list2).mean(),
                     (RSW_list4 +  realR_SW_list4 - R_SW_list4).mean(),
-                    (RSW_list6 +  realR_SW_list6 - R_SW_list6).mean()
+                    
                 ])
 
-                R_SWdivRSWmean +=  np.array([
+                mean_RSW_tight_ratio +=  np.array([
                     (R_SW_list1 / RSW_list1).mean(),
                     (R_SW_list2 / RSW_list2).mean(),
                     (R_SW_list4 / RSW_list4).mean(),
-                    (R_SW_list6 / RSW_list6).mean()
+                    
                 ])
 
                 PreemptionRatio += np.array([
                     Preemption1 / totalRelease1,
                     Preemption2 / totalRelease2,
                     Preemption4 / totalRelease4,
-                    Preemption6 / totalRelease6
+                    
                 ])
 
                 acceptRatio += np.array([
                     acceptCnt1 / totalRelease1,
                     acceptCnt2 / totalRelease2,
                     acceptCnt4 / totalRelease4,
-                    acceptCnt6 / totalRelease6
+                    
                 ])
+
+                max_RCG_tight_ratio += np.array([
+                    (R_CG_list1 / RCG_list1).max(),
+                    (R_CG_list2 / RCG_list2).max(),
+                    (R_CG_list4 / RCG_list4).max(),
+                ])
+                max_RSW_tight_ratio += np.array([
+                    (R_SW_list1 / RSW_list1).max(),
+                    (R_SW_list2 / RSW_list2).max(),
+                    (R_SW_list4 / RSW_list4).max(),
+                ])
+
+                max_max_RCG_tight_ratio = np.fmax(max_max_RCG_tight_ratio, np.array([
+                    (R_CG_list1 / RCG_list1).max(),
+                    (R_CG_list2 / RCG_list2).max(),
+                    (R_CG_list4 / RCG_list4).max(),
+                ]))
+                max_max_RSW_tight_ratio = np.fmax(max_max_RSW_tight_ratio, np.array([
+                    (R_SW_list1 / RSW_list1).max(),
+                    (R_SW_list2 / RSW_list2).max(),
+                    (R_SW_list4 / RSW_list4).max(),
+                ]))
 
                 end = time.time()
                 # print(end - start)
@@ -203,13 +226,16 @@ def mainRunner(params, AUX, staticdynamic):
         stationUtil = stationUtil / res
         chargerUtil = chargerUtil / res
         realReleasetoRCGend = realReleasetoRCGend / res
-        R_CGdivRCGmean = R_CGdivRCGmean / res
+        realReleasetoRSWend = realReleasetoRSWend / res
+        mean_RCG_tight_ratio = mean_RCG_tight_ratio / res
+        mean_RSW_tight_ratio = mean_RSW_tight_ratio / res
+        max_RCG_tight_ratio = max_RCG_tight_ratio / res
+        max_RSW_tight_ratio = max_RSW_tight_ratio / res
         PreemptionRatio = PreemptionRatio / res
         acceptRatio = acceptRatio / res
-        realReleasetoSWend = realReleasetoSWend / res
-        R_SWdivRSWmean = R_SWdivRSWmean / res
+
     # return res, vdli, analysisSWFail, analysisCGFail
-    return stationUtil, chargerUtil, realReleasetoRCGend, R_SWdivRSWmean, PreemptionRatio, acceptRatio, res, R_CGdivRCGmean, realReleasetoSWend
+    return stationUtil, chargerUtil, realReleasetoRCGend, realReleasetoRSWend, mean_RCG_tight_ratio, mean_RSW_tight_ratio, max_RCG_tight_ratio, max_RSW_tight_ratio, max_max_RCG_tight_ratio, max_max_RSW_tight_ratio, PreemptionRatio, acceptRatio, res
 
 def draw(filename, varyingLi):
 
@@ -220,129 +246,42 @@ def draw(filename, varyingLi):
     res = pickleLoader(filename)
     res = np.array(res)
 
+    res = np.stack(res)
+    stationUtil, chargerUtil, realReleasetoRCGend, realReleasetoRSWend, mean_RCG_tight_ratio, mean_RSW_tight_ratio, max_RCG_tight_ratio, max_RSW_tight_ratio, max_max_RCG_tight_ratio, max_max_RSW_tight_ratio, PreemptionRatio, acceptRatio, success = res.T
+    stationUtil = np.stack(stationUtil)
+    chargerUtil = np.stack(chargerUtil)
+    realReleasetoRCGend = np.stack(realReleasetoRCGend)
+    realReleasetoRSWend = np.stack(realReleasetoRSWend)
+    mean_RCG_tight_ratio = np.stack(mean_RCG_tight_ratio)
+    mean_RSW_tight_ratio = np.stack(mean_RSW_tight_ratio)
+    max_RCG_tight_ratio = np.stack(max_RCG_tight_ratio)
+    max_RSW_tight_ratio = np.stack(max_RSW_tight_ratio)
+    max_max_RCG_tight_ratio = np.stack(max_max_RCG_tight_ratio)
+    max_max_RSW_tight_ratio = np.stack(max_max_RSW_tight_ratio)
+    PreemptionRatio = np.stack(PreemptionRatio)
+    acceptRatio = np.stack(acceptRatio)
+
+    resLi = [stationUtil, chargerUtil, realReleasetoRCGend, realReleasetoRSWend, mean_RCG_tight_ratio, mean_RSW_tight_ratio, max_RCG_tight_ratio, max_RSW_tight_ratio, max_max_RCG_tight_ratio, max_max_RSW_tight_ratio, PreemptionRatio, acceptRatio]
+    nameLi = ["stationUtil", "chargerUtil", "realReleasetoRCGend", "realReleasetoRSWend", "mean_RCG_tight_ratio", "mean_RSW_tight_ratio", "max_RCG_tight_ratio", "max_RSW_tight_ratio", "max_max_RCG_tight_ratio", "max_max_RSW_tight_ratio", "PreemptionRatio", "acceptRatio"]
+
+    for i in range(len(resLi)):
+        temp = resLi[i]
+        plt.figure()
+        plt.plot(varyingLi, temp[:,0], label="periodic")
+        plt.plot(varyingLi, temp[:,1], label="AHP1")
+        plt.plot(varyingLi, temp[:,2], label="AHP2")
+        plt.xlabel(filename)
+        plt.ylabel(nameLi[i])
+        plt.legend()
+        plt.tight_layout(pad = 0.2)
+        plt.savefig(filename+"/"+nameLi[i])
+    plt.show()
+
     plt.figure()
-    temp = []
-    for i in range(len(varyingLi)):
-        temp.append((res[:,0])[i])
-    temp = np.array(temp)
+    temp = stationUtil
     plt.plot(varyingLi, temp[:,0], label="periodic")
     plt.plot(varyingLi, temp[:,1], label="AHP1")
     plt.plot(varyingLi, temp[:,2], label="AHP2")
-    plt.plot(varyingLi, temp[:,3], label="AHP3")
-    plt.xlabel(filename)
-    plt.ylabel("station util")
-    plt.legend()
-    plt.tight_layout(pad = 0.2)
-    plt.savefig(filename+"/station util")
-
-    plt.figure()
-    temp = []
-    for i in range(len(varyingLi)):
-        temp.append((res[:,1])[i])
-    temp = np.array(temp)
-    plt.plot(varyingLi, temp[:,0], label="periodic")
-    plt.plot(varyingLi, temp[:,1], label="AHP1")
-    plt.plot(varyingLi, temp[:,2], label="AHP2")
-    plt.plot(varyingLi, temp[:,3], label="AHP3")
-    plt.xlabel(filename)
-    plt.ylabel("charger util")
-    plt.legend()
-    plt.tight_layout(pad = 0.2)
-    plt.savefig(filename+"/charger util")
-
-    plt.figure()
-    temp = []
-    for i in range(len(varyingLi)):
-        temp.append((res[:,2])[i])
-    temp = np.array(temp)
-    plt.plot(varyingLi, temp[:,0], label="periodic")
-    plt.plot(varyingLi, temp[:,1], label="AHP1")
-    plt.plot(varyingLi, temp[:,2], label="AHP2")
-    plt.plot(varyingLi, temp[:,3], label="AHP3")
-    plt.xlabel(filename)
-    plt.ylabel("realReleasetoRCGend")
-    plt.legend()
-    plt.tight_layout(pad = 0.2)
-    plt.savefig(filename+"/realReleasetoRCGend")
-
-    plt.figure()
-    temp = []
-    for i in range(len(varyingLi)):
-        temp.append((res[:,3])[i])
-    temp = np.array(temp)
-    plt.plot(varyingLi, temp[:,0], label="periodic")
-    plt.plot(varyingLi, temp[:,1], label="AHP1")
-    plt.plot(varyingLi, temp[:,2], label="AHP2")
-    plt.plot(varyingLi, temp[:,3], label="AHP3")
-    plt.xlabel(filename)
-    plt.ylabel("R_SWdivRSWmean")
-    plt.legend()
-    plt.tight_layout(pad = 0.2)
-    plt.savefig(filename+"/R_SWdivRSWmean")
-    # plt.show()
-
-    plt.figure()
-    temp = []
-    for i in range(len(varyingLi)):
-        temp.append((res[:,-2])[i])
-    temp = np.array(temp)
-    plt.plot(varyingLi, temp[:,0], label="periodic")
-    plt.plot(varyingLi, temp[:,1], label="AHP1")
-    plt.plot(varyingLi, temp[:,2], label="AHP2")
-    plt.plot(varyingLi, temp[:,3], label="AHP3")
-    plt.xlabel(filename)
-    plt.ylabel("R_CGdivRCGmean")
-    plt.legend()
-    plt.tight_layout(pad = 0.2)
-    plt.savefig(filename+"/R_CGdivRCGmean")
-
-    plt.figure()
-    temp = []
-    for i in range(len(varyingLi)):
-        temp.append((res[:,-1])[i])
-    temp = np.array(temp)
-    plt.plot(varyingLi, temp[:,0], label="periodic")
-    plt.plot(varyingLi, temp[:,1], label="AHP1")
-    plt.plot(varyingLi, temp[:,2], label="AHP2")
-    plt.plot(varyingLi, temp[:,3], label="AHP3")
-    plt.xlabel(filename)
-    plt.ylabel("realReleasetoSWend")
-    plt.legend()
-    plt.tight_layout(pad = 0.2)
-    plt.savefig(filename+"/realReleasetoSWend")
-
-    plt.figure()
-    temp = []
-    for i in range(len(varyingLi)):
-        temp.append((res[:,4])[i])
-    temp = np.array(temp)
-    plt.plot(varyingLi, temp[:,0], label="periodic")
-    plt.plot(varyingLi, temp[:,1], label="AHP1")
-    plt.plot(varyingLi, temp[:,2], label="AHP2")
-    plt.plot(varyingLi, temp[:,3], label="AHP3")
-    plt.xlabel(filename)
-    plt.ylabel("PreemptionRatio")
-    plt.legend()
-    plt.tight_layout(pad = 0.2)
-    plt.savefig(filename+"/PreemptionRatio")
-    # plt.show()
-
-    plt.figure()
-    temp = []
-    for i in range(len(varyingLi)):
-        temp.append((res[:,5])[i])
-    temp = np.array(temp)
-    plt.plot(varyingLi, temp[:,0], label="periodic")
-    plt.plot(varyingLi, temp[:,1], label="AHP1")
-    plt.plot(varyingLi, temp[:,2], label="AHP2")
-    plt.plot(varyingLi, temp[:,3], label="AHP3")
-    plt.xlabel(filename)
-    plt.ylabel("acceptRatio")
-    plt.legend()
-    plt.tight_layout(pad = 0.2)
-    plt.savefig(filename+"/acceptRatio")
-
-    # plt.show()
 
 def swapUtil():
     stationUtilLi = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
@@ -350,7 +289,7 @@ def swapUtil():
     numtLi = [4]
     numpLi = [2]
     numcLi = [30]
-    aux =15
+    aux =12
     res = []
     for sUtil in stationUtilLi:
         for cUtil in chargerUtilLi:
@@ -370,7 +309,7 @@ def chargerUtil():
     numtLi = [4]
     numpLi = [2]
     numcLi = [30]
-    aux =15
+    aux =12
 
     res = []
 
@@ -392,7 +331,7 @@ def numT():
     numtLi = np.arange(1,11,1)
     numpLi = [2]
     numcLi = [30]
-    aux =15
+    aux =12
 
     res = []
     for sUtil in stationUtilLi:
@@ -412,9 +351,9 @@ def numP():
     stationUtilLi = [0.5]
     chargerUtilLi = [0.5]
     numtLi = [4]
-    numpLi = [1,2,3,4]
+    numpLi = [1,2,3,4,5]
     numcLi = [30]
-    aux =15
+    aux =12
     res = []
     for sUtil in stationUtilLi:
         for cUtil in chargerUtilLi:
@@ -435,7 +374,7 @@ def numC():
     numtLi = [4]
     numpLi = [2]
     numcLi = [20, 25, 30, 35, 40]
-    aux =15
+    aux =12
 
     res = []
 
@@ -453,7 +392,7 @@ def numC():
 
 
 def numBat():
-    batLi = np.arange(3,37, 3)
+    batLi = np.arange(3,28, 3)
 
     stationUtilLi = [0.5]
     chargerUtilLi = [0.5]
@@ -479,18 +418,19 @@ def numBat():
 stationUtilLi = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
 chargerUtilLi = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 numtLi = np.arange(1,11,1)
-numpLi = [1,2,3,4]
+numpLi = [1,2,3,4,5]
 numcLi = [20, 25, 30, 35, 40]
-batLi = np.arange(3,37, 3)
+batLi = np.arange(3,28, 3)
 
 start2 = time.time()
 
-swapUtil()
+
+# swapUtil()
 # numBat()
 # chargerUtil()
 # numT()
 # numP()
-# numC()
+numC()
 
 
 end2 = time.time()

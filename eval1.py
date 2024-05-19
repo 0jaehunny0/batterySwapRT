@@ -92,7 +92,10 @@ def mainRunner(params, numc, AUX):
     for i in range(0, NUMS):
         np.random.seed(i)
         taskSet = myRes[i, :, :]
-        analysisResultRM = analysisSW(taskSet, params, batterySet)
+        # analysisResultRM = analysisSW(taskSet, params, batterySet)
+        # analysisResultRM = NEWanalysisSW(taskSet, params, batterySet)
+        analysisResultRM = NEWanalysisSW2(taskSet, params, batterySet)
+        
 
         if np.sum(analysisResultRM) != -1:
 
@@ -100,7 +103,8 @@ def mainRunner(params, numc, AUX):
 
             taskSet = virtualDeadline(taskSet, params, batterySet)
 
-            analysisResultCG = analysisCG(taskSet, params, batterySet)
+            # analysisResultCG = analysisCG(taskSet, params, batterySet)
+            analysisResultCG = NEWanalysisCG2(taskSet, params, batterySet)
 
             if np.sum(analysisResultCG) != -1:
                 res += 1
@@ -118,7 +122,7 @@ def swapUtil():
     numtLi = [4]
     numpLi = [2]
     numcLi = [30]
-    aux =15
+    aux =12
 
     res = []
 
@@ -144,7 +148,7 @@ def chargerUtil():
     numtLi = [4]
     numpLi = [2]
     numcLi = [30]
-    aux =15
+    aux =12
 
     res = []
 
@@ -171,7 +175,7 @@ def numT():
     numtLi = np.arange(1,11,1)
     numpLi = [2]
     numcLi = [30]
-    aux =15
+    aux =12
 
     res = []
 
@@ -198,9 +202,9 @@ def numP():
     stationUtilLi = [0.5]
     chargerUtilLi = [0.5]
     numtLi = [4]
-    numpLi = [1,2,3,4]
+    numpLi = [1,2,3,4,5]
     numcLi = [30]
-    aux =15
+    aux =12
 
     res = []
 
@@ -229,7 +233,7 @@ def numC():
     numtLi = [4]
     numpLi = [2]
     numcLi = [20, 25, 30, 35, 40]
-    aux =15
+    aux =12
 
     res = []
 
@@ -253,7 +257,7 @@ def numC():
 
 
 def numBat():
-    batLi = np.arange(3,37, 3)
+    batLi = np.arange(3,28, 3)
 
     stationUtilLi = [0.5]
     chargerUtilLi = [0.5]
@@ -280,12 +284,12 @@ def numBat():
     # plt.show()
 
 
-# numBat()
-# chargerUtil()
 swapUtil()
-# numT()
-# numP()
-# numC()
+numBat()
+chargerUtil()
+numT()
+numP()
+numC()
 
 
 plt.show()
