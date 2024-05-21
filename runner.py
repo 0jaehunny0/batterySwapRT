@@ -536,7 +536,7 @@ def FIFOrunnerAHP3(paramTaskSet, NUMP, RUNTIME, batterySet, C_CG, chargerNUM, pe
                         for sQidx in range(qLen):
                             if stationQ[sQidx][1] >= prevRelease[idx] + TT and stationQ[sQidx][1] < time:
                                 t_early_virt = stationQ[sQidx][1]
-                                print(1)
+                                # print(1)
                                 break
                         targetTime = min(time, t_early_virt)
                         a = np.vstack((stationQ, np.array([idx, targetTime, taskSet[idx, _D] + targetTime - 1, taskSet[idx, _RSW] + targetTime, taskSet[idx, _C], time], dtype=np.int32).reshape(1,6)))
