@@ -345,7 +345,7 @@ def NEWanalysisSW(taskSet, params, batterySet):
         prevR = taskSet[:, _RSW]
         prevRy = np.fmin(D, prevR)
 
-def RTASanalysisSW2(taskSet, params, batterySet):
+def RTASanalysisSW2(taskSet, params, batterySet): # RTAS version analysis
     sUtil, cUtil, numt, nump, numc, NUMS = params
 
     # init R_x(i) = D_x
@@ -391,7 +391,7 @@ def RTASanalysisSW2(taskSet, params, batterySet):
                 update = True
     return taskSet
 
-def RTASanalysisSW3(taskSet, params, batterySet):
+def RTASanalysisSW3(taskSet, params, batterySet): # RTSS version analysis
     sUtil, cUtil, numt, nump, numc, NUMS = params
 
     # init R_x(i) = D_x
@@ -405,8 +405,29 @@ def RTASanalysisSW3(taskSet, params, batterySet):
     # response time = C
     taskSet[:,_RSW] = taskSet[:,_C]
 
-    prevRx = C.copy() # slack = D - C / S = D - R / R = D - S / saves last resopnse time of x
+    prevRx = C.copy() # slack = D - C / S = D - R / R = D - S / saves last resopnse time of x 예전 논문에는 L을 C로 initially set한다는데 D 아닌가?
     prevRy = D.copy() # slack = D - C / S = D - R / R = D - S / saves last resopnse time of y
+
+    # first iteration
+    for idx in range(numt): # for k = 0 to n do
+        while True: 
+            oneBL = 0
+            if prevRx[idx] > T[idx]: # cacluate BL*x (L)
+                for a in range(1, int(np.floor(prevRx[idx]/T[idx])) + 1):
+                    val = prevRx[idx] - a * T[idx]
+                    oneBL += min(C[idx], val)
+            for idx2 in range(numt): # cacluate BL*y (Ry) except for x
+                if idx == idx2: continue 
+                if prevRy[idx2] > T[idx2]:
+                    for a in range(1, int(np.floor(prevRy[idx2]/T[idx2])) + 1):
+                        val = prevRy[idx2] - a * T[idx2]
+                        oneBL += min(C[idx2], val)                    
+            L = np.floor(C[idx] + (oneBL + sum(C) - C[idx]) / NSW) # equation 3
+            if L == prevRx[idx]: 
+                prevRx[idx] = L
+                break
+            prevRx[idx] = L
+    prevRy = prevRx.copy()
 
     update = True
     while update:
@@ -433,7 +454,7 @@ def RTASanalysisSW3(taskSet, params, batterySet):
             
             if L > D[idx]:
                 return [-1] # unschedulable
-            if L > taskSet[idx, _RSW]:
+            if L != taskSet[idx, _RSW]:
                 taskSet[idx, _RSW] = L
                 update = True
         prevRy = prevRx.copy()
