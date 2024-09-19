@@ -405,8 +405,8 @@ def RTASanalysisSW3(taskSet, params, batterySet):
     # response time = C
     taskSet[:,_RSW] = taskSet[:,_C]
 
-    prevRx = C.copy() # slack = D - C / S = D - R / R = D - S / saves last resopnse time
-    prevRy = D.copy() # slack = D - C / S = D - R / R = D - S / saves last resopnse time
+    prevRx = C.copy() # slack = D - C / S = D - R / R = D - S / saves last resopnse time of x
+    prevRy = D.copy() # slack = D - C / S = D - R / R = D - S / saves last resopnse time of y
 
     update = True
     while update:
