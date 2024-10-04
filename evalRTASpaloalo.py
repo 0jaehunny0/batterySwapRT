@@ -96,7 +96,6 @@ def maxmin(a, b):
 def mainRunner(params, AUX, staticdynamic):
 
 
-
     with open(file='model1.pickle', mode='rb') as f:
         model1=np.array(pickle.load(f))
 
@@ -122,26 +121,28 @@ def mainRunner(params, AUX, staticdynamic):
     analysisCGFail = 0
     vdli = []
 
-    mean_RCG_tight_ratio = np.zeros(5)
-    realReleasetoRCGend = np.zeros(5)
-    mean_RSW_tight_ratio = np.zeros(5)
-    realReleasetoRSWend = np.zeros(5)
-    PreemptionRatio = np.zeros(5)
-    chargerUtil = np.zeros(5)
-    stationUtil = np.zeros(5)
-    acceptRatio = np.zeros(5)
-    max_RCG_tight_ratio = np.zeros(5)
-    max_RSW_tight_ratio = np.zeros(5)
-    max_max_RCG_tight_ratio = np.zeros(5)
-    max_max_RSW_tight_ratio = np.zeros(5)
-    R_CG_list = np.zeros(5)
-    R_SW_list = np.zeros(5)
+    mean_RCG_tight_ratio = np.zeros(6)
+    realReleasetoRCGend = np.zeros(6)
+    mean_RSW_tight_ratio = np.zeros(6)
+    realReleasetoRSWend = np.zeros(6)
+    PreemptionRatio = np.zeros(6)
+    chargerUtil = np.zeros(6)
+    stationUtil = np.zeros(6)
+    acceptRatio = np.zeros(6)
+    max_RCG_tight_ratio = np.zeros(6)
+    max_RSW_tight_ratio = np.zeros(6)
+    max_max_RCG_tight_ratio = np.zeros(6)
+    max_max_RSW_tight_ratio = np.zeros(6)
+    R_CG_list = np.zeros(6)
+    R_SW_list = np.zeros(6)
     CSW = 0
     CCG = 0 
     TTT = 0
 
     model1 = model1 * 10
     model2 = model2 * 10
+
+    # sorted(model1)[int(len(model1)*0.05)]
 
     model =[model1, model2]
 
@@ -150,41 +151,62 @@ def mainRunner(params, AUX, staticdynamic):
         np.random.seed(i)
 
         taskSet = myRes[i, :, :]
+        taskSet2 = taskSet.copy()
+        taskSet3 = taskSet.copy()
 
-        taskSet[:, _T] = 2000, 2000
+        taskSet2[:, _T] = 1850, 2030
+        # taskSet2[:, _T] = 550, 600
+        taskSet3[:, _T] = 370, 370
 
 
         analysisResultRM = RTASanalysisSW2(taskSet, params, batterySet)
+        analysisResultRM2 = RTASanalysisSW2(taskSet2, params, batterySet)
+        analysisResultRM3 = RTASanalysisSW2(taskSet3, params, batterySet)
 
         if np.sum(analysisResultRM) != -1:
 
             taskSet = analysisResultRM
+            taskSet2 = analysisResultRM2
+            taskSet3 = analysisResultRM3
 
             taskSet = virtualDeadline(taskSet, params, batterySet)
+            taskSet2 = virtualDeadline(taskSet2, params, batterySet)
+            taskSet3 = virtualDeadline(taskSet3, params, batterySet)
 
             analysisResultCG = RTASanalysisCG2(taskSet, params, batterySet)
+            analysisResultCG2 = RTASanalysisCG2(taskSet2, params, batterySet)
+            analysisResultCG3 = RTASanalysisCG2(taskSet3, params, batterySet)
 
             if np.sum(analysisResultCG) != -1:
 
                 start = time.time()
 
                 taskSet = analysisResultCG
+                taskSet2 = analysisResultCG2
+                taskSet3 = analysisResultCG3
 
                 taskSet = np.array(taskSet, dtype=np.int32)
+                taskSet2 = np.array(taskSet2, dtype=np.int32)
+                taskSet3 = np.array(taskSet3, dtype=np.int32)
 
                 CSW += np.mean(taskSet[:, _C])
                 CCG += np.mean(taskSet[:, _CG])
                 TTT += np.mean(taskSet[:, _T])
 
                 res1 = FIFOrunnerAHP1(taskSet, nump, RUNTIME, batterySet, 0, numc, PERIODIC, staticdynamic, model)                
+                res2 = FIFOrunnerAHP1(taskSet2, nump, RUNTIME, batterySet, 0, numc, PERIODIC, staticdynamic, model)                
+                res3 = FIFOrunnerAHP1(taskSet3, nump, RUNTIME, batterySet, 0, numc, PERIODIC, staticdynamic, model)                
                 stationCheck1, chargerCheck1, Preemption1, totalRelease1, totalhighCnt1, acceptCnt1, R_SW_list1, R_CG_list1, realR_SW_list1, realR_CG_list1, RSW_list1, RCG_list1 = res1
-                res2 = res1
                 stationCheck2, chargerCheck2, Preemption2, totalRelease2, totalhighCnt2, acceptCnt2, R_SW_list2, R_CG_list2, realR_SW_list2, realR_CG_list2, RSW_list2, RCG_list2 = res2                              
-                res3 = FIFOrunnerAHP1noquasi2(taskSet, nump, RUNTIME, batterySet, 0, numc, SPORADIC, staticdynamic, model)
                 stationCheck3, chargerCheck3, Preemption3, totalRelease3, totalhighCnt3, acceptCnt3, R_SW_list3, R_CG_list3, realR_SW_list3, realR_CG_list3, RSW_list3, RCG_list3 = res3                              
+                
                 res4 = FIFOrunnerAHP22(taskSet, nump, RUNTIME, batterySet, 0, numc, SPORADIC, staticdynamic, model)                
+                res5 = FIFOrunnerAHP22(taskSet2, nump, RUNTIME, batterySet, 0, numc, SPORADIC, staticdynamic, model)                
+                res6 = FIFOrunnerAHP22(taskSet3, nump, RUNTIME, batterySet, 0, numc, SPORADIC, staticdynamic, model)                
+
+ 
                 stationCheck4, chargerCheck4, Preemption4, totalRelease4, totalhighCnt4, acceptCnt4, R_SW_list4, R_CG_list4, realR_SW_list4, realR_CG_list4, RSW_list4, RCG_list4 = res4
-                res6 = FIFOrunnerAHP2noquasi2(taskSet, nump, RUNTIME, batterySet, 0, numc, SPORADIC, staticdynamic, model)                
+                stationCheck5, chargerCheck5, Preemption5, totalRelease5, totalhighCnt5, acceptCnt5, R_SW_list5, R_CG_list5, realR_SW_list5, realR_CG_list5, RSW_list5, RCG_list5 = res5
                 stationCheck6, chargerCheck6, Preemption6, totalRelease6, totalhighCnt6, acceptCnt6, R_SW_list6, R_CG_list6, realR_SW_list6, realR_CG_list6, RSW_list6, RCG_list6 = res6
 
 
@@ -194,8 +216,8 @@ def mainRunner(params, AUX, staticdynamic):
                     np.sum(stationCheck2 != -1)/RUNTIME/nump,
                     np.sum(stationCheck3 != -1)/RUNTIME/nump,
                     np.sum(stationCheck4 != -1)/RUNTIME/nump,
+                    np.sum(stationCheck5 != -1)/RUNTIME/nump,
                     np.sum(stationCheck6 != -1)/RUNTIME/nump,
-                
                 ])
 
                 chargerUtil += np.array([
@@ -203,6 +225,7 @@ def mainRunner(params, AUX, staticdynamic):
                     np.sum(chargerCheck2 != -1)/RUNTIME/numc,
                     np.sum(chargerCheck3 != -1)/RUNTIME/numc,
                     np.sum(chargerCheck4 != -1)/RUNTIME/numc,
+                    np.sum(chargerCheck5 != -1)/RUNTIME/numc,
                     np.sum(chargerCheck6 != -1)/RUNTIME/numc,
                     
                 ])
@@ -212,6 +235,7 @@ def mainRunner(params, AUX, staticdynamic):
                     (RCG_list2 +  realR_CG_list2 - R_CG_list2).mean(),
                     (RCG_list3 +  realR_CG_list3 - R_CG_list3).mean(),
                     (RCG_list4 +  realR_CG_list4 - R_CG_list4).mean(),
+                    (RCG_list5 +  realR_CG_list5 - R_CG_list5).mean(),
                     (RCG_list6 +  realR_CG_list6 - R_CG_list6).mean(),
                     
                 ])
@@ -221,6 +245,7 @@ def mainRunner(params, AUX, staticdynamic):
                     (R_CG_list2 / RCG_list2).mean(),
                     (R_CG_list3 / RCG_list3).mean(),
                     (R_CG_list4 / RCG_list4).mean(),
+                    (R_CG_list5 / RCG_list5).mean(),
                     (R_CG_list6 / RCG_list6).mean(),
                     
                 ])
@@ -230,6 +255,7 @@ def mainRunner(params, AUX, staticdynamic):
                     (RSW_list2 +  realR_SW_list2 - R_SW_list2).mean(),
                     (RSW_list3 +  realR_SW_list3 - R_SW_list3).mean(),
                     (RSW_list4 +  realR_SW_list4 - R_SW_list4).mean(),
+                    (RSW_list5 +  realR_SW_list5 - R_SW_list5).mean(),
                     (RSW_list6 +  realR_SW_list6 - R_SW_list6).mean(),
                     
                 ])
@@ -239,6 +265,7 @@ def mainRunner(params, AUX, staticdynamic):
                     (R_SW_list2 / RSW_list2).mean(),
                     (R_SW_list3 / RSW_list3).mean(),
                     (R_SW_list4 / RSW_list4).mean(),
+                    (R_SW_list5 / RSW_list5).mean(),
                     (R_SW_list6 / RSW_list6).mean(),
                     
                 ])
@@ -248,6 +275,7 @@ def mainRunner(params, AUX, staticdynamic):
                     Preemption2 / totalRelease2,
                     Preemption3 / totalRelease3,
                     Preemption4 / totalRelease4,
+                    Preemption5 / totalRelease5,
                     Preemption6 / totalRelease6,
                     
                 ])
@@ -257,6 +285,7 @@ def mainRunner(params, AUX, staticdynamic):
                     acceptCnt2 / totalRelease2,
                     acceptCnt3 / totalRelease3,
                     acceptCnt4 / totalRelease4,
+                    acceptCnt5 / totalRelease5,
                     acceptCnt6 / totalRelease6,
                     
                 ])
@@ -266,6 +295,7 @@ def mainRunner(params, AUX, staticdynamic):
                     maxmin(R_CG_list2, RCG_list2),
                     maxmin(R_CG_list3, RCG_list3),
                     maxmin(R_CG_list4, RCG_list4),
+                    maxmin(R_CG_list5, RCG_list5),
                     maxmin(R_CG_list6, RCG_list6),
                 ])
                 max_RSW_tight_ratio += np.array([
@@ -273,6 +303,7 @@ def mainRunner(params, AUX, staticdynamic):
                     maxmin(R_SW_list2, RSW_list2),
                     maxmin(R_SW_list3, RSW_list3),
                     maxmin(R_SW_list4, RSW_list4),
+                    maxmin(R_SW_list5, RSW_list5),
                     maxmin(R_SW_list6, RSW_list6),
                 ])
 
@@ -281,6 +312,7 @@ def mainRunner(params, AUX, staticdynamic):
                     (R_CG_list2 / RCG_list2).max(),
                     (R_CG_list3 / RCG_list3).max(),
                     (R_CG_list4 / RCG_list4).max(),
+                    (R_CG_list5 / RCG_list5).max(),
                     (R_CG_list6 / RCG_list6).max(),
                 ]))
                 max_max_RSW_tight_ratio = np.fmax(max_max_RSW_tight_ratio, np.array([
@@ -288,6 +320,7 @@ def mainRunner(params, AUX, staticdynamic):
                     (R_SW_list2 / RSW_list2).max(),
                     (R_SW_list3 / RSW_list3).max(),
                     (R_SW_list4 / RSW_list4).max(),
+                    (R_SW_list5 / RSW_list5).max(),
                     (R_SW_list6 / RSW_list6).max(),
                 ]))
 
@@ -296,6 +329,7 @@ def mainRunner(params, AUX, staticdynamic):
                     R_CG_list2.mean(),
                     R_CG_list3.mean(),
                     R_CG_list4.mean(),
+                    R_CG_list5.mean(),
                     R_CG_list6.mean(),
                 ])
 
@@ -304,6 +338,7 @@ def mainRunner(params, AUX, staticdynamic):
                     R_SW_list2.mean(),
                     R_SW_list3.mean(),
                     R_SW_list4.mean(),
+                    R_SW_list5.mean(),
                     R_SW_list6.mean(),
                 ])
 
@@ -416,7 +451,7 @@ def palo():
     numtLi = [2]
     numpLi = [2]
     numcLi = [30]
-    aux =12
+    aux =15
     res = []
     for sUtil in stationUtilLi:
         for cUtil in chargerUtilLi:
@@ -428,6 +463,138 @@ def palo():
                         res.append(result)
     res = np.array(res)
     pickleSaver("PaloAlto", res)
+    res = pickleLoader("PaloAlto")
+
+    stationUtil, chargerUtil, realReleasetoRCGend, realReleasetoRSWend, mean_RCG_tight_ratio, mean_RSW_tight_ratio, max_RCG_tight_ratio, max_RSW_tight_ratio, max_max_RCG_tight_ratio, max_max_RSW_tight_ratio, PreemptionRatio, acceptRatio, res, R_CG_list, R_SW_list, CSW, CCG, TTT = np.stack(res).T
+    
+    # data = pd.DataFrame([stationUtil[0]*100, chargerUtil[0]*100, realReleasetoRSWend[0], [10.34, 10.34, 100, 100, 100, 100]])
+    # data = pd.DataFrame([stationUtil[0]*100, chargerUtil[0]*100])
+    # data.columns = ["1ac","medac", "1va", "medva"]
+
+    # data = data.T
+    # data.columns = ["station", "charger"]
+
+
+    station = [stationUtil[0][0], stationUtil[0][3], stationUtil[0][2], stationUtil[0][5], stationUtil[0][1], stationUtil[0][4]]
+    charger = [chargerUtil[0][0], chargerUtil[0][3], chargerUtil[0][2], chargerUtil[0][5], chargerUtil[0][1], chargerUtil[0][4]]
+    rsw = [realReleasetoRSWend[0][0], realReleasetoRSWend[0][3], realReleasetoRSWend[0][2], realReleasetoRSWend[0][5], realReleasetoRSWend[0][1], realReleasetoRSWend[0][4]]
+    passr = [10.34, 10.34, 100, 100, 100, 100]
+
+    font = {'family' : 'normal',
+            'size'   : 23}
+    matplotlib.rc('font', **font)
+
+    from matplotlib import font_manager
+    import matplotlib.patches as mpatches
+
+    font_path = 'C:/Users/jaehunny/Downloads/font/LinBiolinum_Rah.ttf'
+    font_name = font_manager.FontProperties(fname=font_path).get_name()
+
+    font_dirs = ['C:/Users/jaehunny/Downloads/font']
+    font_files = font_manager.findSystemFonts(fontpaths=font_dirs)
+
+    for font_file in font_files:
+        font_manager.fontManager.addfont(font_file)
+
+    csfont = {'fontname':"Linux Biolinum"}
+
+    f, axs = plt.subplots(2, 2, sharey=False, figsize=[14.4, 7.2])
+    axs[0,0].bar(["1%-BSSM-AC","1%-BSSM-VA", "5%-BSSM-AC","5%-BSSM-VA", "median-BSSM-AC", "median-BSSM-VA"], passr, color = ["C4", "C5", "C6","C7", "C8","C9"])
+    axs[0,1].bar(["1%-BSSM-AC","1%-BSSM-VA", "5%-BSSM-AC","5%-BSSM-VA", "median-BSSM-AC", "median-BSSM-VA"], np.array(rsw)/10, color = ["C4", "C5", "C6","C7", "C8","C9"])
+    axs[1,0].bar(["1%-BSSM-AC","1%-BSSM-VA", "5%-BSSM-AC","5%-BSSM-VA", "median-BSSM-AC", "median-BSSM-VA"], station, color = ["C4", "C5", "C6","C7", "C8","C9"])
+    axs[1,1].bar(["1%-BSSM-AC","1%-BSSM-VA", "5%-BSSM-AC","5%-BSSM-VA", "median-BSSM-AC", "median-BSSM-VA"], charger, color = ["C4", "C5", "C6","C7", "C8","C9"])
+    axs[0,0].set_xticks([""])
+    axs[0,1].set_xticks([""])
+    axs[1,0].set_xticks([""])
+    axs[1,1].set_xticks([""])
+
+    axs[1,0].set_ylim(0.01, 0.0232)
+    axs[1,1].set_ylim(0.01, 0.0218)
+    
+    axs[0,0].set_xlabel("schedulable ratio (%)")
+    axs[0,1].set_xlabel(r"avg run-time $R^{SW}$ (minutes)")
+    axs[1,0].set_xlabel(r"avg run-time $U^{SW}$ ")
+    axs[1,1].set_xlabel(r"avg run-time $U^{CG}$ ")
+
+    a00 = mpatches.Patch(color='C4', label='1%-BSSM-AC')
+    a01 = mpatches.Patch(color='C5', label='1%-BSSM-VA')
+    a2 = mpatches.Patch(color='C6', label='5%-BSSM-VA')
+    a3 = mpatches.Patch(color='C7', label='5%-BSSM-VA')
+    a10 = mpatches.Patch(color='C8', label='median-BSSM-AC')
+    a11 = mpatches.Patch(color='C9', label='median-BSSM-VA')
+    a10 = mpatches.Patch(color='C8', label='50%-BSSM-AC')
+    a11 = mpatches.Patch(color='C9', label='50%-BSSM-VA')
+
+    # axs[0,1].legend(handles=[a00, a01, a10, a11], loc = "upper left", labelspacing=0.3, fontsize=20, borderpad=0.3, handlelength=1.5, handletextpad=0.5, columnspacing = 1.5, borderaxespad=0.4)
+    axs[0,1].legend(handles=[a00, a01, a2, a3, a10, a11], prop={'family':"monospace"})
+
+    plt.tight_layout(pad = 0.1)
+
+
+
+######################################
+
+    f, axs = plt.subplots(1, 1, sharey=False, figsize=[7.2, 4])
+    axs.bar(["1%-BSSM-AC","1%-BSSM-VA", "5%-BSSM-AC","5%-BSSM-VA", "median-BSSM-AC", "median-BSSM-VA"], passr, color = ["C4", "C5", "C6","C7", "C8","C9"])
+    axs.set_xticks([""])
+    axs.set_xlabel("schedulable ratio (%)")
+    plt.tight_layout(pad = 0.1)
+
+    f, axs = plt.subplots(1, 1, sharey=False, figsize=[7.2, 4])
+    axs.bar(["1%-BSSM-AC","1%-BSSM-VA", "5%-BSSM-AC","5%-BSSM-VA", "median-BSSM-AC", "median-BSSM-VA"], station, color = ["C4", "C5", "C6","C7", "C8","C9"])
+    axs.set_xticks([""])
+    axs.set_ylim(0.01, 0.0232)
+    axs.set_xlabel(r"avg run-time $U^{SW}$ ")
+    plt.tight_layout(pad = 0.1)
+
+    f, axs = plt.subplots(1, 1, sharey=False, figsize=[7.2, 4])
+    axs.bar(["1%-BSSM-AC","1%-BSSM-VA", "5%-BSSM-AC","5%-BSSM-VA", "median-BSSM-AC", "median-BSSM-VA"], charger, color = ["C4", "C5", "C6","C7", "C8","C9"])
+    axs.set_xticks([""])
+    # axs.set_ylim(0.01, 0.0218)
+    axs.set_ylim(0.01, 0.0232)
+    axs.set_xlabel(r"avg run-time $U^{CG}$ ")
+    plt.tight_layout(pad = 0.1)
+
+    f, axs = plt.subplots(1, 1, sharey=False, figsize=[7.2, 4])
+    axs.bar(["1%-BSSM-AC","1%-BSSM-VA", "5%-BSSM-AC","5%-BSSM-VA", "median-BSSM-AC", "median-BSSM-VA"], np.array(rsw)/10, color = ["C4", "C5", "C6","C7", "C8","C9"])
+    axs.set_xticks([""])
+    axs.set_xlabel(r"avg run-time $R^{SW}$ (minutes)")
+    axs.legend(handles=[a00, a01, a2, a3, a10, a11], prop={'family':"monospace"})
+
+    plt.tight_layout(pad = 0.1)
+
+
+
+
+    f, axs = plt.subplots(1, 1, sharey=False, figsize=[7.2, 3.6])
+    axs.bar(["1%-BSSM-AC","1%-BSSM-VA", "5%-BSSM-AC","5%-BSSM-VA"], passr[:4], color = ["C4", "C5", "C6","C7"])
+    axs.set_xticks([""])
+    axs.set_xlabel("schedulable ratio (%)")
+    axs.legend(handles=[a00, a01, a2, a3], prop={'family':"monospace"})
+    plt.tight_layout(pad = 0.1)
+
+    f, axs = plt.subplots(1, 1, sharey=False, figsize=[7.2, 3.6])
+    axs.bar(["1%-BSSM-AC","1%-BSSM-VA", "5%-BSSM-AC","5%-BSSM-VA"], station[:4], color = ["C4", "C5", "C6","C7"])
+    axs.set_xticks([""])
+    axs.set_ylim(0.01, 0.0233)
+    axs.set_xlabel(r"avg run-time $U^{SW}$ ")
+    plt.tight_layout(pad = 0.1)
+
+    f, axs = plt.subplots(1, 1, sharey=False, figsize=[7.2, 3.6])
+    axs.bar(["1%-BSSM-AC","1%-BSSM-VA", "5%-BSSM-AC","5%-BSSM-VA"], charger[:4], color = ["C4", "C5", "C6","C7"])
+    axs.set_xticks([""])
+    axs.set_ylim(0.01, 0.0233)
+    axs.set_xlabel(r"avg run-time $U^{CG}$ ")
+    plt.tight_layout(pad = 0.1)
+
+    f, axs = plt.subplots(1, 1, sharey=False, figsize=[7.2, 3.6])
+    axs.bar(["1%-BSSM-AC","1%-BSSM-VA", "5%-BSSM-AC","5%-BSSM-VA"], (np.array(rsw)/10)[:4], color = ["C4", "C5", "C6","C7"])
+    axs.set_xticks([""])
+    axs.set_xlabel(r"avg run-time $R^{SW}$ (minutes)")
+    
+
+    plt.tight_layout(pad = 0.2)
+
     return 1
 
 stationUtilLi = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
@@ -447,7 +614,7 @@ if not os.path.exists(eval3Dir):
 # draw("charger utilization", chargerUtilLi)
 # draw("number of types", numtLi)
 
-draw("PaloAlto2", [1])
+# draw("PaloAlto2", [1])
 
 # numT2()
 palo()
